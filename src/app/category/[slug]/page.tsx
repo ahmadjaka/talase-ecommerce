@@ -18,186 +18,12 @@ import {
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
 
-import { resolveSubdomain } from '@/lib/store-resolver';
+import {
+  getStorefrontData,
+  resolveSubdomain,
+  type StoreProduct as Product,
+} from '@/lib/store-resolver';
 import { formatCurrency } from '@/lib/format';
-
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  imageUrl: string;
-  price: number;
-  originalPrice: number;
-  sold: number;
-  rating: number;
-  category: string;
-  promoLabel: string;
-  stockQty: number;
-};
-
-type Category = {
-  slug: string;
-  name: string;
-  image: string;
-  description: string;
-};
-
-async function getStoreData(subdomain: string | null) {
-  const categories: Category[] = [
-    {
-      slug: 'makanan',
-      name: 'Makanan',
-      image:
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop',
-      description: 'Pilihan makanan, snack, dan produk kuliner UMKM.',
-    },
-    {
-      slug: 'minuman',
-      name: 'Minuman',
-      image:
-        'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1200&auto=format&fit=crop',
-      description: 'Minuman favorit, kopi, botol, dan produk segar.',
-    },
-    {
-      slug: 'fashion',
-      name: 'Fashion',
-      image:
-        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1200&auto=format&fit=crop',
-      description: 'Produk fashion harian dengan tampilan modern.',
-    },
-    {
-      slug: 'aksesoris',
-      name: 'Aksesoris',
-      image:
-        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1200&auto=format&fit=crop',
-      description: 'Aksesoris pilihan untuk kebutuhan dan gaya harian.',
-    },
-  ];
-
-  const products: Product[] = [
-    {
-      id: '1',
-      slug: 'kopi-arabica-premium',
-      name: 'Kopi Arabica Premium',
-      imageUrl:
-        'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1200&auto=format&fit=crop',
-      price: 45000,
-      originalPrice: 55000,
-      sold: 128,
-      rating: 4.9,
-      category: 'Minuman',
-      promoLabel: 'Promo',
-      stockQty: 24,
-    },
-    {
-      id: '2',
-      slug: 'paket-snack-umkm',
-      name: 'Paket Snack UMKM',
-      imageUrl:
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop',
-      price: 25000,
-      originalPrice: 30000,
-      sold: 87,
-      rating: 4.8,
-      category: 'Makanan',
-      promoLabel: 'Best Seller',
-      stockQty: 18,
-    },
-    {
-      id: '3',
-      slug: 'kaos-premium-talase',
-      name: 'Kaos Premium Talase',
-      imageUrl:
-        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1200&auto=format&fit=crop',
-      price: 99000,
-      originalPrice: 125000,
-      sold: 42,
-      rating: 5.0,
-      category: 'Fashion',
-      promoLabel: 'Unggulan',
-      stockQty: 9,
-    },
-    {
-      id: '4',
-      slug: 'tumbler-eksklusif',
-      name: 'Tumbler Eksklusif',
-      imageUrl:
-        'https://images.unsplash.com/photo-1602143407151-7111542de6e8?q=80&w=1200&auto=format&fit=crop',
-      price: 65000,
-      originalPrice: 79000,
-      sold: 63,
-      rating: 4.7,
-      category: 'Aksesoris',
-      promoLabel: 'Diskon',
-      stockQty: 12,
-    },
-    {
-      id: '5',
-      slug: 'cookies-homemade-premium',
-      name: 'Cookies Homemade Premium',
-      imageUrl:
-        'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=1200&auto=format&fit=crop',
-      price: 38000,
-      originalPrice: 45000,
-      sold: 76,
-      rating: 4.9,
-      category: 'Makanan',
-      promoLabel: 'Baru',
-      stockQty: 31,
-    },
-    {
-      id: '6',
-      slug: 'tas-kanvas-simple',
-      name: 'Tas Kanvas Simple',
-      imageUrl:
-        'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=1200&auto=format&fit=crop',
-      price: 89000,
-      originalPrice: 109000,
-      sold: 35,
-      rating: 4.8,
-      category: 'Fashion',
-      promoLabel: 'Limited',
-      stockQty: 7,
-    },
-    {
-      id: '7',
-      slug: 'es-kopi-susu-botol',
-      name: 'Es Kopi Susu Botol',
-      imageUrl:
-        'https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=1200&auto=format&fit=crop',
-      price: 18000,
-      originalPrice: 22000,
-      sold: 144,
-      rating: 4.9,
-      category: 'Minuman',
-      promoLabel: 'Favorit',
-      stockQty: 40,
-    },
-    {
-      id: '8',
-      slug: 'gelang-handmade',
-      name: 'Gelang Handmade',
-      imageUrl:
-        'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1200&auto=format&fit=crop',
-      price: 32000,
-      originalPrice: 39000,
-      sold: 29,
-      rating: 4.7,
-      category: 'Aksesoris',
-      promoLabel: 'Promo',
-      stockQty: 0,
-    },
-  ];
-
-  return {
-    businessName: subdomain
-      ? `${subdomain.toUpperCase()} Store`
-      : 'Talase Store',
-    businessType: 'Official Ecommerce Store',
-    categories,
-    products,
-  };
-}
 
 export default async function CategoryPage({
   params,
@@ -209,14 +35,14 @@ export default async function CategoryPage({
   const hostname = headerList.get('host') || '';
 
   const subdomain = resolveSubdomain(hostname);
-  const store = await getStoreData(subdomain);
+  const store = await getStorefrontData(subdomain);
 
   const category =
     store.categories.find((item) => item.slug === slug) ||
     store.categories[0];
 
   const categoryProducts = store.products.filter(
-    (product) => product.category.toLowerCase() === category.slug,
+    (product) => product.categorySlug === category.slug,
   );
 
   const otherCategories = store.categories.filter(
