@@ -202,8 +202,9 @@ async function getStoreData(subdomain: string | null) {
 export default async function CategoryPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
   const headerList = await headers();
   const hostname = headerList.get('host') || '';
 
@@ -211,7 +212,7 @@ export default async function CategoryPage({
   const store = await getStoreData(subdomain);
 
   const category =
-    store.categories.find((item) => item.slug === params.slug) ||
+    store.categories.find((item) => item.slug === slug) ||
     store.categories[0];
 
   const categoryProducts = store.products.filter(

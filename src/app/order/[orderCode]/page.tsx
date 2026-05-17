@@ -81,13 +81,14 @@ async function getStoreData(subdomain: string | null, orderCode: string) {
 export default async function OrderTrackingPage({
   params,
 }: {
-  params: { orderCode: string };
+  params: Promise<{ orderCode: string }>;
 }) {
+  const { orderCode } = await params;
   const headerList = await headers();
   const hostname = headerList.get('host') || '';
 
   const subdomain = resolveSubdomain(hostname);
-  const store = await getStoreData(subdomain, params.orderCode);
+  const store = await getStoreData(subdomain, orderCode);
   const order = store.order;
 
   return (

@@ -126,8 +126,9 @@ async function getStoreData(subdomain: string | null) {
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
   const headerList = await headers();
   const hostname = headerList.get('host') || '';
 
@@ -135,7 +136,7 @@ export default async function ProductDetailPage({
   const store = await getStoreData(subdomain);
 
   const product =
-    store.products.find((item) => item.slug === params.slug) ||
+    store.products.find((item) => item.slug === slug) ||
     store.products[0];
 
   const relatedProducts = store.products.filter(
