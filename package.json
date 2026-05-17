@@ -11,6 +11,7 @@
   "dependencies": {
     "@firebase/app": "^0.10.12",
     "@firebase/functions": "^0.12.1",
+    "@tailwindcss/postcss": "^4.3.0",
     "clsx": "^2.1.1",
     "firebase": "^11.0.2",
     "lucide-react": "^0.468.0",
@@ -29,7 +30,7 @@
     "eslint": "^9.16.0",
     "eslint-config-next": "15.1.0",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.16",
+    "tailwindcss": "^3.4.19",
     "typescript": "^5.7.2"
   }
 }

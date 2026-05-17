@@ -1,5 +1,3 @@
-# ecommerce/src/app/page.tsx
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { headers } from 'next/headers';
