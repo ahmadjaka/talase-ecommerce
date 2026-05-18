@@ -1,12 +1,7 @@
 import {
-  collection,
-  getDocs,
-  limit,
-  query,
-  where,
-} from 'firebase/firestore';
-
-import { db } from '@/lib/firebase';
+  firestoreRunQuery,
+  parseFirestoreFields,
+} from '@/lib/firebase';
 
 const RESERVED_HOSTS = new Set([
   'localhost',
@@ -158,21 +153,26 @@ async function resolveStoreMeta(subdomain: string | null) {
 async function findFirstByAnyField(
   collectionName: string,
   filters: Array<[string, string]>,
-) {
+): Promise<Record<string, any> | null> {
   for (const [field, value] of filters) {
-    const snapshot = await getDocs(
-      query(
-        collection(db, collectionName),
-        where(field, '==', value),
-        limit(1),
-      ),
-    );
+    const rows = await firestoreRunQuery({
+      from: [{ collectionId: collectionName }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: field },
+          op: 'EQUAL',
+          value: { stringValue: value },
+        },
+      },
+      limit: 1,
+    });
 
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
+    const first = rows.find((row: any) => row.document)?.document;
+
+    if (first) {
       return {
-        id: doc.id,
-        ...doc.data(),
+        id: first.name.split('/').pop(),
+        ...parseFirestoreFields(first.fields),
       };
     }
   }
@@ -183,16 +183,44 @@ async function findFirstByAnyField(
 async function fetchProducts(mitraId: string): Promise<StoreProduct[]> {
   if (!mitraId) return [];
 
-  const snapshot = await getDocs(
-    query(
-      collection(db, 'products'),
-      where('mitraId', '==', mitraId),
-    ),
-  );
+  const rows = await firestoreRunQuery({
+    from: [{ collectionId: 'products' }],
+    where: {
+      compositeFilter: {
+        op: 'AND',
+        filters: [
+          {
+            fieldFilter: {
+              field: { fieldPath: 'mitraId' },
+              op: 'EQUAL',
+              value: { stringValue: mitraId },
+            },
+          },
+          {
+            fieldFilter: {
+              field: { fieldPath: 'isActive' },
+              op: 'EQUAL',
+              value: { booleanValue: true },
+            },
+          },
+          {
+            fieldFilter: {
+              field: { fieldPath: 'isPublishedToWeb' },
+              op: 'EQUAL',
+              value: { booleanValue: true },
+            },
+          },
+        ],
+      },
+    },
+  });
 
-  return snapshot.docs
-    .map((doc) => {
-      const data = doc.data();
+  return rows
+    .map((row: any) => {
+      const doc = row.document;
+      if (!doc) return null;
+
+      const data = parseFirestoreFields(doc.fields);
 
       const name = str(data.name || data.productName);
       const category = str(data.category) || 'Lainnya';
@@ -203,7 +231,7 @@ async function fetchProducts(mitraId: string): Promise<StoreProduct[]> {
       const secondaryImageUrls = arrayString(data.secondaryImageUrls);
 
       return {
-        id: doc.id,
+        id: doc.name.split('/').pop(),
         slug: str(data.slug) || slugify(name),
         name,
         description: str(data.description),
@@ -222,21 +250,12 @@ async function fetchProducts(mitraId: string): Promise<StoreProduct[]> {
         promoLabel: str(data.promoLabel) || 'Produk',
         stockQty,
         isFeatured: data.isFeatured === true,
-      };
+      } satisfies StoreProduct;
     })
-    .filter((product) => product.name)
-    .filter((product) => product.price > 0)
-    .filter((product) => product.stockQty > 0 || product.stockQty === 0)
-    .filter((product) => {
-      const data = snapshot.docs.find((doc) => doc.id === product.id)?.data();
-
-      return (
-        data?.isActive === true &&
-        data?.isPublishedToWeb === true &&
-        str(data?.status || 'active') === 'active'
-      );
-    })
-    .sort((a, b) => {
+    .filter(Boolean)
+    .filter((product: StoreProduct) => product.name)
+    .filter((product: StoreProduct) => product.price > 0)
+    .sort((a: StoreProduct, b: StoreProduct) => {
       if (b.isFeatured !== a.isFeatured) {
         return Number(b.isFeatured) - Number(a.isFeatured);
       }
