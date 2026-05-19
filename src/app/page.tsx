@@ -18,6 +18,8 @@ import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
 import { ProductSection } from '@/components/product/product-section';
 
+import { PackageSearch } from 'lucide-react';
+
 import {
   resolveSubdomain,
   getStorefrontData,
@@ -32,7 +34,7 @@ export default async function HomePage() {
   const store = await getStorefrontData(subdomain);
 
   if (store.resolveStatus !== 'ready') {
-    return null;
+    return <StoreStatusPage store={store} />;
   }
 
   const content = getStoreContentProfile(store.contentType);
@@ -1061,6 +1063,54 @@ function ServiceBenefitStrip({
         ))}
       </div>
     </section>
+  );
+}
+
+function StoreStatusPage({
+  store,
+}: {
+  store: Awaited<ReturnType<typeof getStorefrontData>>;
+}) {
+  const title =
+    store.resolveStatus === 'not_found'
+      ? 'Toko tidak ditemukan'
+      : store.resolveStatus === 'inactive'
+        ? 'Toko sedang tidak aktif'
+        : 'Website toko belum dipublish';
+
+  const description =
+    store.resolveStatus === 'not_found'
+      ? 'Subdomain toko yang Anda buka belum terdaftar atau belum tersedia.'
+      : store.resolveStatus === 'inactive'
+        ? 'Website toko ini sedang tidak aktif. Silakan hubungi pemilik toko.'
+        : 'Pemilik toko belum mengaktifkan publikasi website ecommerce.';
+
+  return (
+    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
+      <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-5 py-12">
+        <div className="w-full rounded-[34px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm md:p-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FFF1E6] text-[#FF7A1A]">
+            <PackageSearch size={30} />
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black md:text-4xl">
+            {title}
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-7 text-[#64748B] md:text-base">
+            {description}
+          </p>
+
+          <Link
+            href="/"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#073B70] px-6 py-4 text-sm font-black text-white shadow-lg transition hover:scale-[1.02]"
+          >
+            Kembali
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }
 
