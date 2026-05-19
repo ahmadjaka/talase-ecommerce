@@ -235,9 +235,10 @@ export function StoreHeader({
 
           <div className="flex shrink-0 items-center gap-1.5 rounded-[24px] border border-[#E2E8F0] bg-white/95 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_rgba(15,23,42,0.08)] md:gap-2">
             {[
-              { href: facebookUrl || '#', icon: Facebook, label: 'Facebook' },
-              { href: instagramUrl || '#', icon: Instagram, label: 'Instagram' },
-              { href: tiktokUrl || '#', icon: TiktokIcon, label: 'TikTok' },
+              { href: normalizeSocialUrl(facebookUrl, 'facebook'), icon: Facebook, label: 'Facebook' },
+              { href: normalizeSocialUrl(instagramUrl, 'instagram'), icon: Instagram, label: 'Instagram' },
+              { href: normalizeSocialUrl(tiktokUrl, 'tiktok'), icon: TiktokIcon, label: 'TikTok' },
+              { href: normalizeWhatsappUrl(whatsappUrl), icon: WhatsappIcon, label: 'WhatsApp' },
             ].map((social) => {
               const Icon = social.icon;
               const hasUrl = social.href !== '#';
@@ -509,6 +510,35 @@ function WhatsappIcon({ size = 18 }: { size?: number }) {
       <path d="M16.04 3C8.84 3 3 8.74 3 15.82c0 2.48.72 4.88 2.08 6.95L3 29l6.42-2.02a13.2 13.2 0 0 0 6.62 1.8H16c7.2 0 13.04-5.74 13.04-12.82C29.04 8.74 23.2 3 16.04 3zm7.58 18.34c-.32.9-1.86 1.7-2.56 1.8-.66.1-1.5.14-2.42-.16-.56-.18-1.28-.42-2.2-.8-3.86-1.6-6.38-5.34-6.58-5.6-.18-.24-1.56-2.02-1.56-3.84 0-1.8.94-2.68 1.28-3.04.34-.36.74-.46.98-.46.24 0 .5 0 .72.02.22 0 .52-.08.82.64.3.72 1 2.5 1.08 2.68.08.18.14.4.02.64-.12.24-.18.4-.36.62-.18.22-.38.5-.54.66-.18.18-.38.38-.16.74.22.36.98 1.6 2.1 2.6 1.44 1.28 2.66 1.68 3.02 1.86.36.18.56.16.76-.1.2-.24.88-1.02 1.12-1.36.24-.34.48-.28.8-.16.32.12 2 .94 2.34 1.1.34.18.56.26.64.4.08.14.08.82-.24 1.72z" />
     </svg>
   );
+}
+
+function normalizeSocialUrl(
+  value: string | undefined,
+  type: 'facebook' | 'instagram' | 'tiktok',
+) {
+  const raw = String(value || '').trim();
+
+  if (!raw) return '#';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+
+  const clean = raw.replace(/^@/, '');
+
+  if (type === 'instagram') return `https://instagram.com/${clean}`;
+  if (type === 'facebook') return `https://facebook.com/${clean}`;
+  if (type === 'tiktok') return `https://www.tiktok.com/@${clean}`;
+
+  return '#';
+}
+
+function normalizeWhatsappUrl(value: string | undefined) {
+  const raw = String(value || '').trim();
+  const cleaned = raw.replace(/[^0-9]/g, '');
+
+  if (!cleaned) return '#';
+  if (cleaned.startsWith('0')) return `https://wa.me/62${cleaned.slice(1)}`;
+  if (cleaned.startsWith('62')) return `https://wa.me/${cleaned}`;
+
+  return `https://wa.me/${cleaned}`;
 }
 
 function getHeaderCopy(contentType: string): HeaderCopy {
