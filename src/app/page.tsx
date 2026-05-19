@@ -60,6 +60,10 @@ export default async function HomePage() {
         primaryColor={store.primaryColor}
         secondaryColor={store.secondaryColor}
         accentColor={store.accentColor}
+        facebookUrl={store.facebookUrl}
+        instagramUrl={store.instagramUrl}
+        tiktokUrl={store.tiktokUrl}
+        whatsappUrl={store.whatsapp}
       />
 
       {sectionKeys.map((sectionKey) => {

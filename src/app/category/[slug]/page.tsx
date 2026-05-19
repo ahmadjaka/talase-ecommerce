@@ -69,6 +69,10 @@ export default async function CategoryPage({
         primaryColor={store.primaryColor}
         secondaryColor={store.secondaryColor}
         accentColor={store.accentColor}
+        facebookUrl={store.facebookUrl}
+        instagramUrl={store.instagramUrl}
+        tiktokUrl={store.tiktokUrl}
+        whatsappUrl={store.whatsapp}
       />
 
       <section className="border-b border-[#E2E8F0] bg-white">
@@ -260,6 +264,10 @@ function CategoryNotFoundPage({
         primaryColor={store.primaryColor}
         secondaryColor={store.secondaryColor}
         accentColor={store.accentColor}
+        facebookUrl={store.facebookUrl}
+        instagramUrl={store.instagramUrl}
+        tiktokUrl={store.tiktokUrl}
+        whatsappUrl={store.whatsapp}
       />
 
       <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center px-5 py-12">

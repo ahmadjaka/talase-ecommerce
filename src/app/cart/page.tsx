@@ -56,6 +56,10 @@ export default async function CartPage({
         primaryColor={store.primaryColor}
         secondaryColor={store.secondaryColor}
         accentColor={store.accentColor}
+        facebookUrl={store.facebookUrl}
+        instagramUrl={store.instagramUrl}
+        tiktokUrl={store.tiktokUrl}
+        whatsappUrl={store.whatsapp}
       />
 
       <section className="border-b border-[#E2E8F0] bg-white">
