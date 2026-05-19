@@ -107,30 +107,30 @@ export function StoreHeader({
 
   const headerSocials: SocialItem[] = [
     {
-      href: facebookUrl,
+      href: facebookUrl || '#',
       icon: Facebook,
       label: 'Facebook',
     },
     {
-      href: instagramUrl,
+      href: instagramUrl || '#',
       icon: Instagram,
       label: 'Instagram',
     },
     {
-      href: tiktokUrl,
+      href: tiktokUrl || '#',
       icon: TiktokIcon,
       label: 'TikTok',
     },
-  ].filter((item) => item.href);
+  ];
 
   const sidebarSocials: SocialItem[] = [
     ...headerSocials,
     {
-      href: whatsappUrl,
+      href: whatsappUrl || '#',
       icon: WhatsappIcon,
       label: 'WhatsApp',
     },
-  ].filter((item) => item.href);
+  ];
 
   useEffect(() => {
     const syncCart = () => {
@@ -240,11 +240,19 @@ export function StoreHeader({
               return (
                 <a
                   key={social.label}
-                  href={social.href}
-                  target="_blank"
+                  href={social.href || '#'}
+                  target={
+                    social.href && social.href !== '#'
+                      ? '_blank'
+                      : undefined
+                  }
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_18px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-[#F8FAFC] md:h-11 md:w-11"
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_18px_rgba(15,23,42,0.07)] transition md:h-11 md:w-11 ${
+                    social.href && social.href !== '#'
+                      ? 'hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-[#F8FAFC]'
+                      : 'cursor-default opacity-50'
+                  }`}
                 >
                   <Icon size={17} />
                 </a>
@@ -404,11 +412,19 @@ export function StoreHeader({
                   return (
                     <a
                       key={social.label}
-                      href={social.href}
-                      target="_blank"
+                      href={social.href || '#'}
+                      target={
+                        social.href && social.href !== '#'
+                          ? '_blank'
+                          : undefined
+                      }
                       rel="noopener noreferrer"
                       aria-label={social.label}
-                      className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_22px_rgba(15,23,42,0.08)]"
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_22px_rgba(15,23,42,0.08)] ${
+                        social.href && social.href !== '#'
+                          ? ''
+                          : 'cursor-default opacity-50'
+                      }`}
                     >
                       <Icon size={18} />
                     </a>
