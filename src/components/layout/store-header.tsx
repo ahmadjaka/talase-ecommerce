@@ -71,8 +71,8 @@ export function StoreHeader({
         const items = getCartItems();
         const total = items.reduce((sum, item) => {
           const quantity =
-            typeof item.quantity === 'number' && item.quantity > 0
-              ? item.quantity
+            typeof item.qty === 'number' && item.qty > 0
+              ? item.qty
               : 1;
 
           return sum + quantity;
