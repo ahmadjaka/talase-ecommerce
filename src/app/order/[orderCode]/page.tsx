@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import {
   ArrowLeft,
@@ -29,7 +29,6 @@ import {
   getStorefrontData,
   resolveSubdomain,
 } from '@/lib/store-resolver';
-import { cookies, headers } from 'next/headers';
 
 type OnlineOrder = {
   id: string;
