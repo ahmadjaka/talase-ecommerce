@@ -186,7 +186,7 @@ export function StoreHeader({
                 secondaryColor={secondaryColor}
               />
 
-              <div className="min-w-0">
+              <div className="hidden min-w-0 sm:block">
                 <h1 className="truncate text-[17px] font-black text-[#102033]">
                   {businessName}
                 </h1>
