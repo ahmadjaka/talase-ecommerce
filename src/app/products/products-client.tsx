@@ -18,6 +18,9 @@ type ProductsClientProps = {
   primaryColor: string;
   accentColor: string;
   cardStyle: string;
+  title?: string;
+  subtitle?: string;
+  searchPlaceholder?: string;
 };
 
 type FilterKey = 'all' | 'featured' | 'best_seller' | 'promo' | 'available';
@@ -43,6 +46,9 @@ export function ProductsClient({
   primaryColor,
   accentColor,
   cardStyle,
+  title = 'Semua Produk',
+  subtitle,
+  searchPlaceholder = 'Cari produk favorit di toko ini...',
 }: ProductsClientProps) {
   const [query, setQuery] = useState('');
   const [filterBy, setFilterBy] = useState<FilterKey>('all');
@@ -124,7 +130,7 @@ export function ProductsClient({
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari produk favorit di toko ini..."
+                placeholder={searchPlaceholder}
                 className="w-full bg-transparent text-sm font-bold text-[#102033] outline-none placeholder:text-[#94A3B8]"
               />
             </div>
@@ -169,10 +175,10 @@ export function ProductsClient({
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black md:text-3xl">
-              Semua Produk
+              {title}
             </h2>
             <p className="mt-2 text-sm font-semibold text-[#64748B]">
-              Menampilkan {filteredProducts.length} dari {products.length} produk.
+              {subtitle || `Menampilkan ${filteredProducts.length} dari ${products.length} produk.`}
             </p>
           </div>
 
