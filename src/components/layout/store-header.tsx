@@ -319,12 +319,12 @@ export function StoreHeader({
                 secondaryColor={secondaryColor}
               />
 
-              <div className="hidden min-w-0 sm:block">
-                <h1 className="truncate text-[17px] font-black text-[#102033]">
+              <div className="min-w-0">
+                <h1 className="truncate text-[17px] font-black text-white">
                   {businessName}
                 </h1>
 
-                <p className="truncate text-[11px] font-bold uppercase tracking-wide text-[#64748B]">
+                <p className="truncate text-[11px] font-bold uppercase tracking-wide text-white/75">
                   {businessType || copy.sidebarTitle}
                 </p>
               </div>
