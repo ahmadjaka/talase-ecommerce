@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
@@ -25,20 +24,10 @@ import {
   getOnlineOrderItems,
   getOnlineOrdersBySubdomain,
 } from '@/lib/order-resolver';
-
 import {
   getStorefrontData,
   resolveSubdomain,
 } from '@/lib/store-resolver';
-
-const firebaseConfig = {
-  apiKey: 'AIzaSyC1M0GEIE3OxBgZ3Jdv-Ui516uLhRdYdCM',
-  authDomain: 'talase-pos.firebaseapp.com',
-  projectId: 'talase-pos',
-  storageBucket: 'talase-pos.firebasestorage.app',
-  messagingSenderId: '1061126584585',
-  appId: '1:1061126584585:web:e2d1b4bbf5c631088dbbd8',
-};
 
 type OnlineOrder = {
   id: string;
@@ -59,6 +48,20 @@ type OnlineOrder = {
   updatedAt?: string;
 };
 
+type OnlineOrderItem = {
+  id?: string;
+  productName?: string;
+  name?: string;
+  productImageUrl?: string;
+  imageUrl?: string;
+  qty?: number;
+  quantity?: number;
+  unitPrice?: number;
+  price?: number;
+  subtotal?: number;
+  note?: string;
+};
+
 export default async function OrderTrackingPage({
   params,
 }: {
@@ -75,13 +78,6 @@ export default async function OrderTrackingPage({
     return <StoreStatusPage store={store} />;
   }
 
-  const storeMeta = store as Awaited<ReturnType<typeof getStorefrontData>> & {
-    mitraId?: string;
-    id?: string;
-  };
-
-  const mitraId = storeMeta.mitraId || storeMeta.id || '';
-
   const trackingSubdomain =
     ((store as any).subdomain || subdomain || '').toString();
 
@@ -90,13 +86,11 @@ export default async function OrderTrackingPage({
   )) as OnlineOrder[];
 
   const selectedOrder =
-    orders.find(
-      (order: OnlineOrder) => order.orderCode === orderCode,
-    ) ??
+    orders.find((order) => order.orderCode === orderCode) ??
     (orders.length === 1 ? orders[0] : null);
 
   const selectedItems = selectedOrder
-    ? await getOnlineOrderItems(selectedOrder.id)
+    ? ((await getOnlineOrderItems(selectedOrder.id)) as OnlineOrderItem[])
     : [];
 
   return (
@@ -134,7 +128,6 @@ export default async function OrderTrackingPage({
               <h1 className="text-4xl font-black md:text-5xl">
                 Pesanan Saya
               </h1>
-
               <p className="mt-3 text-sm font-semibold leading-7 text-[#64748B] md:text-base">
                 Pilih pesanan untuk melihat detail pembayaran, status, dan
                 tracking proses toko.
@@ -164,28 +157,81 @@ export default async function OrderTrackingPage({
             >
               <PackageSearch size={22} />
             </div>
-
             <div>
               <h2 className="text-2xl font-black">List Order</h2>
               <p className="mt-1 text-xs font-bold text-[#64748B]">
-                Pesanan dari browser ini
+                Pesanan toko ini
               </p>
             </div>
           </div>
 
-          <div
-            id="order-list-message"
-            className="mt-5 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 text-center"
-          >
-            <p className="text-sm font-black text-[#102033]">
-              Memuat pesanan...
-            </p>
-            <p className="mt-2 text-xs font-semibold leading-6 text-[#64748B]">
-              Sistem sedang mengambil data order.
-            </p>
-          </div>
+          {orders.length === 0 ? (
+            <div className="mt-5 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 text-center">
+              <p className="text-sm font-black text-[#102033]">
+                Belum ada order ditemukan
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-6 text-[#64748B]">
+                Pesanan tidak ditemukan pada toko ini.
+              </p>
+              <Link
+                href="/products"
+                className="mt-4 inline-flex rounded-xl px-4 py-3 text-xs font-black text-white"
+                style={{ backgroundColor: store.primaryColor }}
+              >
+                Lihat Produk
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {orders.map((order) => {
+                const active = selectedOrder?.id === order.id;
 
-          <div id="order-list" className="mt-5 hidden space-y-3" />
+                return (
+                  <Link
+                    key={order.id}
+                    href={`/order/${order.orderCode || order.id}`}
+                    className="block rounded-2xl border bg-white p-4 text-left transition hover:bg-[#F8FAFC]"
+                    style={{
+                      borderColor: active ? store.primaryColor : '#E2E8F0',
+                      boxShadow: active
+                        ? '0 14px 36px rgba(15, 23, 42, 0.10)'
+                        : 'none',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-[#102033]">
+                          {order.orderCode || order.id}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-[#64748B]">
+                          {formatDate(order.createdAt)}
+                        </p>
+                      </div>
+
+                      <span
+                        className="rounded-full px-3 py-1 text-[10px] font-black"
+                        style={{
+                          backgroundColor: `${store.primaryColor}14`,
+                          color: store.primaryColor,
+                        }}
+                      >
+                        {orderStatusLabel(order.orderStatus)}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold text-[#64748B]">
+                        {paymentStatusLabel(order.paymentStatus)}
+                      </p>
+                      <p className="text-sm font-black text-[#102033]">
+                        {formatCurrency(order.total)}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-6 rounded-2xl bg-[#FFF1E6] p-4">
             <p className="text-sm font-semibold leading-7 text-[#92400E]">
@@ -195,184 +241,263 @@ export default async function OrderTrackingPage({
           </div>
         </aside>
 
-        <div id="order-detail-empty" className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
-          <div
-            className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl text-white"
-            style={{ backgroundColor: store.primaryColor }}
-          >
-            <PackageCheck size={30} />
-          </div>
-
-          <h2 className="mt-5 text-3xl font-black">
-            Pilih pesanan terlebih dahulu
-          </h2>
-
-          <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-7 text-[#64748B]">
-            Detail status, data pembeli, produk, dan pembayaran akan muncul
-            setelah salah satu pesanan dipilih.
-          </p>
-        </div>
-
-        <div id="order-detail" className="hidden space-y-6">
-          <section className="overflow-hidden rounded-[32px] border border-[#E2E8F0] bg-white shadow-sm">
+        {!selectedOrder ? (
+          <div className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
             <div
-              className="p-6 text-white md:p-8"
-              style={{
-                background: `linear-gradient(135deg, ${store.primaryColor}, ${store.secondaryColor})`,
-              }}
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wide backdrop-blur-md">
-                <PackageCheck size={15} />
-                Status Pesanan
-              </div>
-
-              <h2
-                id="order-status-heading"
-                className="mt-5 text-3xl font-black md:text-4xl"
-              >
-                -
-              </h2>
-
-              <p
-                id="order-status-description"
-                className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-white/85 md:text-base"
-              >
-                -
-              </p>
-            </div>
-
-            <div className="grid gap-4 p-5 md:grid-cols-3 md:p-6">
-              <StatusInfo
-                icon={<Clock size={20} />}
-                title="Dibuat"
-                valueId="order-created-at"
-                value="-"
-                primaryColor={store.primaryColor}
-              />
-
-              <StatusInfo
-                icon={<CreditCard size={20} />}
-                title="Pembayaran"
-                valueId="payment-status-label"
-                value="-"
-                primaryColor={store.primaryColor}
-              />
-
-              <StatusInfo
-                icon={<ShoppingBag size={20} />}
-                title="Order"
-                valueId="order-status-label"
-                value="-"
-                primaryColor={store.primaryColor}
-              />
-            </div>
-          </section>
-
-          <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-            <h2 className="text-2xl font-black">Timeline Pesanan</h2>
-
-            <div className="mt-6 space-y-5">
-              <TimelineItem
-                id="timeline-created"
-                title="Pesanan dibuat"
-                subtitle="Pesanan berhasil masuk ke sistem toko."
-              />
-
-              <TimelineItem
-                id="timeline-payment"
-                title="Menunggu pembayaran"
-                subtitle="Pembeli mengikuti instruksi transfer atau QRIS."
-              />
-
-              <TimelineItem
-                id="timeline-processing"
-                title="Diproses toko"
-                subtitle="Toko sedang menyiapkan pesanan."
-              />
-
-              <TimelineItem
-                id="timeline-completed"
-                title="Selesai"
-                subtitle="Pesanan sudah selesai diproses."
-              />
-            </div>
-          </section>
-
-          <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-            <h2 className="text-2xl font-black">Data Pembeli</h2>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <InfoBox
-                icon={<User size={18} />}
-                label="Nama Pembeli"
-                valueId="customer-name"
-                value="-"
-                primaryColor={store.primaryColor}
-              />
-
-              <InfoBox
-                icon={<Phone size={18} />}
-                label="Nomor WhatsApp"
-                valueId="customer-phone"
-                value="-"
-                primaryColor={store.primaryColor}
-              />
-
-              <div className="md:col-span-2">
-                <InfoBox
-                  icon={<MapPin size={18} />}
-                  label="Alamat"
-                  valueId="customer-address"
-                  value="-"
-                  primaryColor={store.primaryColor}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <InfoBox
-                  icon={<MessageCircle size={18} />}
-                  label="Catatan"
-                  valueId="customer-note"
-                  value="-"
-                  primaryColor={store.primaryColor}
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
-            <h2 className="text-2xl font-black">Ringkasan Pesanan</h2>
-
-            <div id="order-items" className="mt-5 space-y-4" />
-
-            <div className="mt-6 space-y-4">
-              <SummaryRow id="order-subtotal" label="Subtotal" value="Rp 0" />
-              <SummaryRow id="order-discount" label="Diskon" value="- Rp 0" />
-              <SummaryRow id="order-shipping" label="Ongkir" value="Diatur toko" />
-
-              <div className="border-t border-dashed border-[#CBD5E1] pt-4">
-                <SummaryRow id="order-total" label="Total" value="Rp 0" bold />
-              </div>
-            </div>
-
-            <Link
-              id="payment-link"
-              href={`/payment/${orderCode}`}
-              className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-xl transition hover:scale-[1.01]"
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl text-white"
               style={{ backgroundColor: store.primaryColor }}
             >
-              Lihat Pembayaran
-              <ArrowRight size={18} />
-            </Link>
+              <PackageCheck size={30} />
+            </div>
 
-            <Link
-              href="/products"
-              className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#102033] transition hover:bg-[#F8FAFC]"
-            >
-              Belanja Lagi
-            </Link>
-          </section>
-        </div>
+            <h2 className="mt-5 text-3xl font-black">
+              Pilih pesanan terlebih dahulu
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-7 text-[#64748B]">
+              Detail status, data pembeli, produk, dan pembayaran akan muncul
+              setelah salah satu pesanan dipilih.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <section className="overflow-hidden rounded-[32px] border border-[#E2E8F0] bg-white shadow-sm">
+              <div
+                className="p-6 text-white md:p-8"
+                style={{
+                  background: `linear-gradient(135deg, ${store.primaryColor}, ${store.secondaryColor})`,
+                }}
+              >
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wide backdrop-blur-md">
+                  <PackageCheck size={15} />
+                  Status Pesanan
+                </div>
+
+                <h2 className="mt-5 text-3xl font-black md:text-4xl">
+                  {headingByStatus(selectedOrder.orderStatus)}
+                </h2>
+
+                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-white/85 md:text-base">
+                  {descriptionByStatus(selectedOrder.orderStatus)}
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-5 md:grid-cols-3 md:p-6">
+                <StatusInfo
+                  icon={<Clock size={20} />}
+                  title="Dibuat"
+                  value={formatDate(selectedOrder.createdAt)}
+                  primaryColor={store.primaryColor}
+                />
+                <StatusInfo
+                  icon={<CreditCard size={20} />}
+                  title="Pembayaran"
+                  value={`${paymentStatusLabel(
+                    selectedOrder.paymentStatus,
+                  )} • ${paymentMethodLabel(selectedOrder.paymentMethod)}`}
+                  primaryColor={store.primaryColor}
+                />
+                <StatusInfo
+                  icon={<ShoppingBag size={20} />}
+                  title="Order"
+                  value={orderStatusLabel(selectedOrder.orderStatus)}
+                  primaryColor={store.primaryColor}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-2xl font-black">Timeline Pesanan</h2>
+              <div className="mt-6 space-y-5">
+                <TimelineItem
+                  active
+                  done
+                  primaryColor={store.primaryColor}
+                  icon={<CheckCircle2 size={20} />}
+                  title="Pesanan dibuat"
+                  subtitle="Pesanan berhasil masuk ke sistem toko."
+                />
+                <TimelineItem
+                  active={isPaymentStepActive(selectedOrder)}
+                  done={selectedOrder.paymentStatus === 'paid'}
+                  primaryColor={store.primaryColor}
+                  icon={<Clock size={20} />}
+                  title="Pembayaran"
+                  subtitle="Pembeli mengikuti instruksi transfer atau QRIS."
+                />
+                <TimelineItem
+                  active={isProcessingStepActive(selectedOrder)}
+                  done={
+                    selectedOrder.orderStatus === 'ready' ||
+                    selectedOrder.orderStatus === 'completed'
+                  }
+                  primaryColor={store.primaryColor}
+                  icon={<PackageCheck size={20} />}
+                  title="Diproses toko"
+                  subtitle="Toko sedang menyiapkan pesanan."
+                />
+                <TimelineItem
+                  active={isFinalStepActive(selectedOrder)}
+                  done={selectedOrder.orderStatus === 'completed'}
+                  danger={
+                    selectedOrder.orderStatus === 'cancelled' ||
+                    selectedOrder.orderStatus === 'rejected'
+                  }
+                  primaryColor={store.primaryColor}
+                  icon={
+                    selectedOrder.orderStatus === 'cancelled' ||
+                    selectedOrder.orderStatus === 'rejected' ? (
+                      <XCircle size={20} />
+                    ) : (
+                      <CheckCircle2 size={20} />
+                    )
+                  }
+                  title={
+                    selectedOrder.orderStatus === 'cancelled'
+                      ? 'Dibatalkan'
+                      : selectedOrder.orderStatus === 'rejected'
+                        ? 'Ditolak'
+                        : 'Selesai'
+                  }
+                  subtitle="Pesanan sudah selesai diproses."
+                />
+              </div>
+            </section>
+
+            <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-2xl font-black">Data Pembeli</h2>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <InfoBox
+                  icon={<User size={18} />}
+                  label="Nama Pembeli"
+                  value={selectedOrder.customerName || '-'}
+                  primaryColor={store.primaryColor}
+                />
+                <InfoBox
+                  icon={<Phone size={18} />}
+                  label="Nomor WhatsApp"
+                  value={selectedOrder.customerPhone || '-'}
+                  primaryColor={store.primaryColor}
+                />
+                <div className="md:col-span-2">
+                  <InfoBox
+                    icon={<MapPin size={18} />}
+                    label="Alamat"
+                    value={selectedOrder.customerAddress || '-'}
+                    primaryColor={store.primaryColor}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <InfoBox
+                    icon={<MessageCircle size={18} />}
+                    label="Catatan"
+                    value={selectedOrder.customerNote || 'Tidak ada catatan'}
+                    primaryColor={store.primaryColor}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-2xl font-black">Ringkasan Pesanan</h2>
+
+              <div className="mt-5 space-y-4">
+                {selectedItems.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 text-center">
+                    <p className="text-sm font-black text-[#102033]">
+                      Item pesanan tidak ditemukan
+                    </p>
+                  </div>
+                ) : (
+                  selectedItems.map((item, index) => {
+                    const name = item.productName || item.name || 'Produk';
+                    const imageUrl = item.productImageUrl || item.imageUrl || '';
+                    const qty = Number(item.qty || item.quantity || 1);
+                    const price = Number(item.unitPrice || item.price || 0);
+                    const subtotal = Number(item.subtotal || price * qty);
+
+                    return (
+                      <div
+                        key={item.id || index}
+                        className="grid grid-cols-[58px_1fr_auto] gap-3 rounded-2xl bg-[#F8FAFC] p-3"
+                      >
+                        <div className="relative aspect-square overflow-hidden rounded-xl bg-[#F1F5F9]">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] font-black text-[#94A3B8]">
+                              Produk
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <h3 className="line-clamp-2 text-sm font-black text-[#102033]">
+                            {name}
+                          </h3>
+                          <p className="mt-1 text-xs font-bold text-[#64748B]">
+                            {qty} x {formatCurrency(price)}
+                          </p>
+                        </div>
+
+                        <p className="text-right text-sm font-black text-[#102033]">
+                          {formatCurrency(subtotal)}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <SummaryRow
+                  label="Subtotal"
+                  value={formatCurrency(selectedOrder.subtotal)}
+                />
+                <SummaryRow
+                  label="Diskon"
+                  value={`- ${formatCurrency(selectedOrder.discount)}`}
+                />
+                <SummaryRow
+                  label="Ongkir"
+                  value={
+                    Number(selectedOrder.shippingCost || 0) > 0
+                      ? formatCurrency(selectedOrder.shippingCost)
+                      : 'Diatur toko'
+                  }
+                />
+                <div className="border-t border-dashed border-[#CBD5E1] pt-4">
+                  <SummaryRow
+                    label="Total"
+                    value={formatCurrency(selectedOrder.total)}
+                    bold
+                  />
+                </div>
+              </div>
+
+              <Link
+                href={`/payment/${selectedOrder.orderCode || orderCode}`}
+                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-xl transition hover:scale-[1.01]"
+                style={{ backgroundColor: store.primaryColor }}
+              >
+                Lihat Pembayaran
+                <ArrowRight size={18} />
+              </Link>
+
+              <Link
+                href="/products"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#102033] transition hover:bg-[#F8FAFC]"
+              >
+                Belanja Lagi
+              </Link>
+            </section>
+          </div>
+        )}
       </section>
 
       <StoreFooter
@@ -389,7 +514,6 @@ export default async function OrderTrackingPage({
         primaryColor={store.primaryColor}
         accentColor={store.accentColor}
       />
-
     </main>
   );
 }
@@ -398,13 +522,11 @@ function StatusInfo({
   icon,
   title,
   value,
-  valueId,
   primaryColor,
 }: {
   icon: ReactNode;
   title: string;
   value: string;
-  valueId: string;
   primaryColor: string;
 }) {
   return (
@@ -415,38 +537,51 @@ function StatusInfo({
       >
         {icon}
       </div>
-
       <p className="mt-3 text-xs font-black uppercase tracking-wide text-[#94A3B8]">
         {title}
       </p>
-
-      <h3 id={valueId} className="mt-1 text-sm font-black text-[#102033]">
-        {value}
-      </h3>
+      <h3 className="mt-1 text-sm font-black text-[#102033]">{value}</h3>
     </div>
   );
 }
 
 function TimelineItem({
-  id,
+  active,
+  done,
+  danger = false,
+  icon,
   title,
   subtitle,
+  primaryColor,
 }: {
-  id: string;
+  active: boolean;
+  done?: boolean;
+  danger?: boolean;
+  icon: ReactNode;
   title: string;
   subtitle: string;
+  primaryColor: string;
 }) {
-  return (
-    <div id={id} className="timeline-item flex gap-4">
-      <div className="timeline-icon mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1F5F9] text-[#94A3B8]">
-        <Clock size={20} />
-      </div>
+  const color = danger ? '#E60046' : primaryColor;
 
+  return (
+    <div className="flex gap-4">
+      <div
+        className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+        style={{
+          backgroundColor: active ? color : '#F1F5F9',
+          color: active ? '#FFFFFF' : '#94A3B8',
+        }}
+      >
+        {done ? <CheckCircle2 size={20} /> : icon}
+      </div>
       <div>
-        <h3 className="timeline-title text-base font-black text-[#94A3B8]">
+        <h3
+          className="text-base font-black"
+          style={{ color: active ? '#102033' : '#94A3B8' }}
+        >
           {title}
         </h3>
-
         <p className="mt-1 text-sm font-semibold leading-7 text-[#64748B]">
           {subtitle}
         </p>
@@ -459,26 +594,20 @@ function InfoBox({
   icon,
   label,
   value,
-  valueId,
   primaryColor,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
-  valueId: string;
   primaryColor: string;
 }) {
   return (
     <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-4">
       <div className="flex items-center gap-2" style={{ color: primaryColor }}>
         {icon}
-
-        <p className="text-xs font-black uppercase tracking-wide">
-          {label}
-        </p>
+        <p className="text-xs font-black uppercase tracking-wide">{label}</p>
       </div>
-
-      <p id={valueId} className="mt-2 text-sm font-bold leading-7 text-[#102033]">
+      <p className="mt-2 text-sm font-bold leading-7 text-[#102033]">
         {value}
       </p>
     </div>
@@ -486,12 +615,10 @@ function InfoBox({
 }
 
 function SummaryRow({
-  id,
   label,
   value,
   bold = false,
 }: {
-  id: string;
   label: string;
   value: string;
   bold?: boolean;
@@ -507,9 +634,7 @@ function SummaryRow({
       >
         {label}
       </p>
-
       <p
-        id={id}
         className={
           bold
             ? 'text-2xl font-black text-[#073B70]'
@@ -519,6 +644,128 @@ function SummaryRow({
         {value}
       </p>
     </div>
+  );
+}
+
+function formatCurrency(value?: number) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function formatDate(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('id-ID');
+}
+
+function orderStatusLabel(status?: string) {
+  switch (status) {
+    case 'processing':
+      return 'Diproses';
+    case 'ready':
+      return 'Siap';
+    case 'completed':
+      return 'Selesai';
+    case 'cancelled':
+      return 'Dibatalkan';
+    case 'rejected':
+      return 'Ditolak';
+    case 'waiting_payment':
+      return 'Menunggu Pembayaran';
+    default:
+      return 'Pesanan Baru';
+  }
+}
+
+function paymentStatusLabel(status?: string) {
+  switch (status) {
+    case 'paid':
+      return 'Sudah Dibayar';
+    case 'waiting_payment':
+      return 'Menunggu Pembayaran';
+    case 'cancelled':
+      return 'Dibatalkan';
+    case 'rejected':
+      return 'Ditolak';
+    default:
+      return 'Menunggu Konfirmasi';
+  }
+}
+
+function paymentMethodLabel(method?: string) {
+  switch (method) {
+    case 'qris':
+      return 'QRIS';
+    case 'transfer':
+      return 'Transfer';
+    case 'cash':
+      return 'Cash';
+    default:
+      return 'Belum dipilih';
+  }
+}
+
+function headingByStatus(status?: string) {
+  switch (status) {
+    case 'processing':
+      return 'Pesanan Sedang Diproses';
+    case 'ready':
+      return 'Pesanan Siap';
+    case 'completed':
+      return 'Pesanan Selesai';
+    case 'cancelled':
+      return 'Pesanan Dibatalkan';
+    case 'rejected':
+      return 'Pesanan Ditolak';
+    case 'waiting_payment':
+      return 'Menunggu Pembayaran';
+    default:
+      return 'Pesanan Berhasil Dibuat';
+  }
+}
+
+function descriptionByStatus(status?: string) {
+  switch (status) {
+    case 'processing':
+      return 'Toko sedang menyiapkan pesanan Anda. Perubahan status akan diinformasikan melalui WhatsApp.';
+    case 'ready':
+      return 'Pesanan sudah siap. Silakan tunggu instruksi dari toko.';
+    case 'completed':
+      return 'Pesanan Anda sudah selesai diproses oleh toko.';
+    case 'cancelled':
+      return 'Pesanan ini telah dibatalkan.';
+    case 'rejected':
+      return 'Pesanan ini ditolak oleh toko.';
+    case 'waiting_payment':
+      return 'Silakan selesaikan pembayaran sesuai instruksi yang tersedia.';
+    default:
+      return 'Pesanan berhasil dibuat dan menunggu proses konfirmasi toko.';
+  }
+}
+
+function isPaymentStepActive(order: OnlineOrder) {
+  return [
+    'waiting_payment',
+    'paid',
+    'processing',
+    'ready',
+    'completed',
+  ].includes(order.orderStatus || '') || order.paymentStatus === 'paid';
+}
+
+function isProcessingStepActive(order: OnlineOrder) {
+  return ['processing', 'ready', 'completed'].includes(
+    order.orderStatus || '',
+  );
+}
+
+function isFinalStepActive(order: OnlineOrder) {
+  return ['completed', 'cancelled', 'rejected'].includes(
+    order.orderStatus || '',
   );
 }
 
@@ -541,15 +788,10 @@ function StoreStatusPage({
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FFF1E6] text-[#FF7A1A]">
             <PackageSearch size={30} />
           </div>
-
-          <h1 className="mt-6 text-3xl font-black md:text-4xl">
-            {title}
-          </h1>
-
+          <h1 className="mt-6 text-3xl font-black md:text-4xl">{title}</h1>
           <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-7 text-[#64748B] md:text-base">
             Toko belum tersedia untuk menampilkan tracking order.
           </p>
-
           <Link
             href="/"
             className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#073B70] px-6 py-4 text-sm font-black text-white shadow-lg"
