@@ -370,35 +370,11 @@ async function resolveStoreMeta(
     process.env.NEXT_PUBLIC_DEFAULT_MITRA_ID || '';
 
   if (subdomain) {
-    const websiteSettings = await findFirstByAnyStringField(
-      'website_settings',
-      [
-        ['subdomain', subdomain],
-        ['slug', subdomain],
-        ['storeSlug', subdomain],
-      ],
-    );
-
-    if (websiteSettings?.mitraId) {
-      const mitraId = str(websiteSettings.mitraId);
-
-      const mitra =
-        (await getDocumentById('mitras', mitraId)) ||
-        (await findFirstByAnyStringField('mitras', [
-          ['mitraId', mitraId],
-          ['subdomain', subdomain],
-        ]));
-
-      return normalizeStoreMeta({
-        ...(mitra ?? {}),
-        ...websiteSettings,
-        mitraId,
-        subdomain,
-      });
-    }
+    const websiteUrl = `https://${subdomain}.talase.id`;
 
     const mitra = await findFirstByAnyStringField('mitras', [
       ['subdomain', subdomain],
+      ['websiteUrl', websiteUrl],
       ['slug', subdomain],
       ['storeSlug', subdomain],
       ['websiteSlug', subdomain],
@@ -411,11 +387,42 @@ async function resolveStoreMeta(
         (await getDocumentById('website_settings', mitraId)) ||
         (await findFirstByAnyStringField('website_settings', [
           ['mitraId', mitraId],
+          ['subdomain', subdomain],
+          ['websiteUrl', websiteUrl],
         ]));
 
       return normalizeStoreMeta({
         ...mitra,
         ...(settings ?? {}),
+        mitraId,
+        subdomain,
+      });
+    }
+
+    const websiteSettings = await findFirstByAnyStringField(
+      'website_settings',
+      [
+        ['subdomain', subdomain],
+        ['websiteUrl', websiteUrl],
+        ['slug', subdomain],
+        ['storeSlug', subdomain],
+      ],
+    );
+
+    if (websiteSettings?.mitraId) {
+      const mitraId = str(websiteSettings.mitraId);
+
+      const resolvedMitra =
+        (await getDocumentById('mitras', mitraId)) ||
+        (await findFirstByAnyStringField('mitras', [
+          ['mitraId', mitraId],
+          ['subdomain', subdomain],
+          ['websiteUrl', websiteUrl],
+        ]));
+
+      return normalizeStoreMeta({
+        ...(resolvedMitra ?? {}),
+        ...websiteSettings,
         mitraId,
         subdomain,
       });
@@ -485,6 +492,10 @@ async function getDocumentById(
 ): Promise<FirestoreRecord | null> {
   if (!documentId) return null;
 
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '';
+
+  if (!projectId) return null;
+
   const rows = await safeRunQuery({
     from: [{ collectionId: collectionName }],
     where: {
@@ -492,7 +503,7 @@ async function getDocumentById(
         field: { fieldPath: '__name__' },
         op: 'EQUAL',
         value: {
-          referenceValue: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/databases/(default)/documents/${collectionName}/${documentId}`,
+          referenceValue: `projects/${projectId}/databases/(default)/documents/${collectionName}/${documentId}`,
         },
       },
     },
