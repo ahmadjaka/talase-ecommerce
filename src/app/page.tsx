@@ -32,7 +32,7 @@ export default async function HomePage() {
   const store = await getStorefrontData(subdomain);
 
   if (store.resolveStatus !== 'ready') {
-    return <StoreStatusPage store={store} />;
+    return null;
   }
 
   const content = getStoreContentProfile(store.contentType);
