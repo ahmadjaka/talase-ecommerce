@@ -45,7 +45,7 @@ export default async function ProductsPage() {
   const featuredProducts =
     store.featuredProducts.length > 0
       ? store.featuredProducts
-      : products.filter((product) => product.isFeatured || product.isFavorite);
+      : products.filter((product) => product.isFeatured);
 
   const fallbackFeaturedProducts =
     featuredProducts.length > 0
