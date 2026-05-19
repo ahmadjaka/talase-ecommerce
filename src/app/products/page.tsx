@@ -45,7 +45,14 @@ export default async function ProductsPage() {
   const featuredProducts =
     store.featuredProducts.length > 0
       ? store.featuredProducts
-      : products.filter((product) => product.isFeatured);
+      : products.filter((product) => product.isFeatured || product.isFavorite);
+
+  const fallbackFeaturedProducts =
+    featuredProducts.length > 0
+      ? featuredProducts
+      : products
+          .filter((product) => !product.isOutOfStock)
+          .slice(0, 8);
 
   const categories = [
     {
@@ -79,6 +86,22 @@ export default async function ProductsPage() {
         accentColor={store.accentColor}
       />
 
+      <section className="border-b border-[#E2E8F0] bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-5 md:px-8">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#64748B]">
+            <Link href="/" style={{ color: store.primaryColor }}>
+              Beranda
+            </Link>
+
+            <ChevronRight size={15} />
+
+            <span className="text-[#102033]">
+              Semua Produk
+            </span>
+          </div>
+        </div>
+      </section>
+
       <ProductsClient
         products={products.map((product) => ({
           id: product.id,
@@ -100,7 +123,7 @@ export default async function ProductsPage() {
         cardStyle={store.productCardStyle}
       />
 
-      {featuredProducts.length > 0 && (
+      {fallbackFeaturedProducts.length > 0 && (
         <section className="mx-auto max-w-7xl px-5 pb-8 md:px-8">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -125,7 +148,7 @@ export default async function ProductsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {featuredProducts.slice(0, 8).map((product) => (
+            {fallbackFeaturedProducts.slice(0, 8).map((product) => (
               <ProductCard
                 key={product.id}
                 product={{
@@ -153,57 +176,6 @@ export default async function ProductsPage() {
         </section>
       )}
 
-      <section className="mx-auto max-w-7xl px-5 pb-14 md:px-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black md:text-3xl">
-              Semua Produk
-            </h2>
-            <p className="mt-2 text-sm font-semibold text-[#64748B]">
-              Katalog lengkap produk yang sudah dipublish ke website ecommerce.
-            </p>
-          </div>
-
-          <div
-            className="hidden items-center gap-2 text-sm font-black md:inline-flex"
-            style={{ color: store.primaryColor }}
-          >
-            <Grid3X3 size={16} />
-            {products.length} Produk
-          </div>
-        </div>
-
-        {products.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={{
-                  id: product.id,
-                  slug: product.slug,
-                  name: product.name,
-                  imageUrl: product.imageUrl,
-                  price: product.price,
-                  originalPrice: product.originalPrice,
-                  sold: product.sold,
-                  rating: product.rating,
-                  category: product.category,
-                  categorySlug: product.categorySlug,
-                  promoLabel: product.promoLabel,
-                  stockQty: product.stockQty,
-                  stockEnabled: product.stockEnabled,
-                }}
-                primaryColor={store.primaryColor}
-                accentColor={store.accentColor}
-                cardStyle={store.productCardStyle}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyProducts primaryColor={store.primaryColor} />
-        )}
-      </section>
-
       <StoreFooter
         businessName={store.businessName}
         businessType={store.businessType}
@@ -219,19 +191,6 @@ export default async function ProductsPage() {
         accentColor={store.accentColor}
       />
 
-      <AddToCartScript
-        products={store.products.map((product) => ({
-          id: product.id,
-          slug: product.slug,
-          name: product.name,
-          imageUrl: product.imageUrl,
-          price: product.price,
-          stockQty: product.stockQty,
-          stockEnabled: product.stockEnabled,
-          isOutOfStock: product.isOutOfStock,
-          unit: product.unit,
-        }))}
-      />
     </main>
   );
 }
@@ -375,81 +334,4 @@ function resolveProductImageClass(cardStyle: string) {
   }
 
   return 'relative aspect-square overflow-hidden bg-[#F1F5F9]';
-}
-
-function AddToCartScript({
-  products,
-}: {
-  products: Array<{
-    id: string;
-    slug: string;
-    name: string;
-    imageUrl: string;
-    price: number;
-    stockQty: number;
-    stockEnabled: boolean;
-    isOutOfStock: boolean;
-    unit: string;
-  }>;
-}) {
-  const script = `
-(function () {
-  const CART_KEY = 'talase_cart';
-  const products = ${JSON.stringify(products)};
-
-  function readCart() {
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function saveCart(cart) {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    window.dispatchEvent(new Event('talase-cart-updated'));
-  }
-
-  function addToCart(slug) {
-    const product = products.find((p) => p.slug === slug || p.id === slug);
-    if (!product || product.isOutOfStock) return;
-
-    const cart = readCart();
-    const existing = cart.find((item) => item.slug === product.slug || item.id === product.id);
-
-    if (existing) {
-      const maxQty = product.stockEnabled ? Math.max(product.stockQty, 1) : 999;
-      existing.qty = Math.min(Number(existing.qty || 1) + 1, maxQty);
-    } else {
-      cart.push({
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        imageUrl: product.imageUrl,
-        price: product.price,
-        stockQty: product.stockQty,
-        stockEnabled: product.stockEnabled,
-        unit: product.unit,
-        qty: 1,
-        note: ''
-      });
-    }
-
-    saveCart(cart);
-  }
-
-  document.querySelectorAll('[data-add-cart]').forEach((button) => {
-    button.addEventListener('click', function (event) {
-      event.preventDefault();
-
-      const slug = this.getAttribute('data-add-cart');
-      if (slug) addToCart(slug);
-    });
-  });
-})();
-`;
-
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
 }

@@ -11,6 +11,7 @@ type ProductSectionProps = {
   subtitle?: string;
   products: ProductCardItem[];
   href?: string;
+  viewAllLabel?: string;
   emptyText?: string;
   primaryColor?: string;
   accentColor?: string;
@@ -23,6 +24,7 @@ export function ProductSection({
   subtitle,
   products,
   href = '/products',
+  viewAllLabel = 'Lihat Semua',
   emptyText = 'Produk belum tersedia.',
   primaryColor = '#009A3E',
   accentColor = '#FF7A1A',
@@ -68,7 +70,7 @@ export function ProductSection({
             className="shrink-0 items-center gap-1 text-xs font-black md:inline-flex md:text-sm"
             style={{ color: primaryColor }}
           >
-            Lihat Semua
+            {viewAllLabel}
             <ChevronRight size={16} />
           </Link>
         </div>

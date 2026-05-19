@@ -25,6 +25,7 @@ type StoreFooterProps = {
 
 export function StoreFooter({
   businessName,
+  businessType,
   contentType = 'product',
   phone = '',
   whatsapp = '',
@@ -55,7 +56,7 @@ export function StoreFooter({
                 {businessName}
               </h3>
               <p className="text-xs font-black uppercase tracking-widest text-[#64748B]">
-                {footerCopy.badge}
+                {businessType || footerCopy.badge}
               </p>
             </div>
           </div>

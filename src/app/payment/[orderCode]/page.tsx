@@ -45,12 +45,18 @@ export default async function PaymentPage({
   const payment = store.paymentSettings;
 
   return (
-    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
+    <main
+      className="min-h-screen bg-[#F7FAFC] text-[#102033]"
+      style={{ fontFamily: store.fontFamily }}
+    >
       <StoreHeader
         businessName={store.businessName}
         businessType={store.businessType}
         contentType={store.contentType}
         logoUrl={store.logoUrl}
+        primaryColor={store.primaryColor}
+        secondaryColor={store.secondaryColor}
+        accentColor={store.accentColor}
       />
 
       <section className="border-b border-[#E2E8F0] bg-white">
@@ -225,7 +231,7 @@ export default async function PaymentPage({
                       src={payment.qrisImageUrl}
                       alt={payment.qrisName || 'QRIS Toko'}
                       fill
-                      className="object-cover"
+                      className="object-contain p-3"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-[#94A3B8]">

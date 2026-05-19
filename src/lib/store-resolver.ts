@@ -1053,14 +1053,33 @@ function mergeThemeIntoStoreMeta(
 function normalizePaymentSettings(
   data: FirestoreRecord,
 ): StorePaymentSettings {
+  const bankName = str(data.bankName);
+  const bankAccountNumber = str(data.bankAccountNumber);
+  const bankAccountOwner = str(
+    data.bankAccountOwner ||
+      data.bankAccountName ||
+      data.bankAccountOwnerName,
+  );
+
+  const qrisImageUrl = str(data.qrisImageUrl);
+  const qrisName = str(data.qrisName || data.businessName);
+
   return {
-    transferEnabled: data.transferEnabled === true,
-    bankName: str(data.bankName),
-    bankAccountNumber: str(data.bankAccountNumber),
-    bankAccountOwner: str(data.bankAccountOwner),
-    qrisEnabled: data.qrisEnabled === true,
-    qrisImageUrl: str(data.qrisImageUrl),
-    qrisName: str(data.qrisName),
+    transferEnabled:
+      data.transferEnabled === true ||
+      Boolean(bankName && bankAccountNumber),
+
+    bankName,
+    bankAccountNumber,
+    bankAccountOwner,
+
+    qrisEnabled:
+      data.qrisEnabled === true ||
+      data.qrisActive === true ||
+      Boolean(qrisImageUrl),
+
+    qrisImageUrl,
+    qrisName,
     qrisMerchantNumber: str(data.qrisMerchantNumber),
     paymentProofRequired: data.paymentProofRequired !== false,
   };

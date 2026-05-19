@@ -40,9 +40,14 @@ type PaymentSettings = {
   transferEnabled: boolean;
   qrisEnabled: boolean;
   paymentProofRequired: boolean;
+
   bankName?: string;
+  bankAccountNumber?: string;
   bankAccountOwner?: string;
+
   qrisName?: string;
+  qrisImageUrl?: string;
+  qrisMerchantNumber?: string;
 };
 
 const CART_KEY = 'talase_cart';
@@ -248,25 +253,28 @@ export function CheckoutClient({
         })),
       });
 
+      const savedOrder = {
+        orderCode: result.orderCode,
+        orderId: result.orderId,
+        customerName,
+        customerPhone: phone62,
+        customerAddress,
+        customerNote,
+        paymentMethod,
+        paymentStatus: result.paymentStatus,
+        orderStatus: result.orderStatus,
+        subtotal,
+        discount,
+        shippingCost,
+        total: result.total,
+        items,
+        createdAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem(CHECKOUT_KEY, JSON.stringify(savedOrder));
       localStorage.setItem(
-        CHECKOUT_KEY,
-        JSON.stringify({
-          orderCode: result.orderCode,
-          orderId: result.orderId,
-          customerName,
-          customerPhone: phone62,
-          customerAddress,
-          customerNote,
-          paymentMethod,
-          paymentStatus: result.paymentStatus,
-          orderStatus: result.orderStatus,
-          subtotal,
-          discount,
-          shippingCost,
-          total: result.total,
-          items,
-          createdAt: new Date().toISOString(),
-        }),
+        `talase_order_${result.orderCode}`,
+        JSON.stringify(savedOrder),
       );
 
       localStorage.removeItem(CART_KEY);
@@ -422,13 +430,64 @@ export function CheckoutClient({
               subtitle={
                 paymentSettings.transferEnabled
                   ? `${paymentSettings.bankName || 'Bank'} • ${
-                      paymentSettings.bankAccountOwner || 'Pemilik Rekening'
+                      paymentSettings.bankAccountNumber || '-'
                     }`
-                  : 'Transfer bank belum diaktifkan toko.'
+                  : 'Transfer bank belum diaktifkan.'
               }
               primaryColor={primaryColor}
               onClick={() => setPaymentMethod('transfer')}
             />
+
+            {paymentMethod === 'transfer' &&
+              paymentSettings.transferEnabled && (
+                <div className="md:col-span-2">
+                  <div className="rounded-[26px] border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+                    <div className="rounded-2xl bg-white p-5">
+                      <p className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+                        Bank Transfer
+                      </p>
+
+                      <h3 className="mt-2 text-2xl font-black text-[#102033]">
+                        {paymentSettings.bankName}
+                      </h3>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <p
+                          className="text-3xl font-black"
+                          style={{ color: primaryColor }}
+                        >
+                          {paymentSettings.bankAccountNumber}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              paymentSettings.bankAccountNumber || '',
+                            );
+
+                            alert('Nomor rekening berhasil disalin.');
+                          }}
+                          className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-xs font-black transition hover:bg-[#F8FAFC]"
+                          style={{
+                            borderColor: primaryColor,
+                            color: primaryColor,
+                            backgroundColor: 'transparent',
+                          }}
+                        >
+                          Salin
+                        </button>
+                      </div>
+
+                      {paymentSettings.bankAccountOwner && (
+                        <p className="mt-2 text-sm font-bold text-[#64748B]">
+                          a/n {paymentSettings.bankAccountOwner}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+            )}
 
             <PaymentCard
               active={paymentMethod === 'qris'}
@@ -437,12 +496,34 @@ export function CheckoutClient({
               title="QRIS Statis"
               subtitle={
                 paymentSettings.qrisEnabled
-                  ? paymentSettings.qrisName || 'Scan QRIS toko'
-                  : 'QRIS belum diaktifkan toko.'
+                  ? paymentSettings.qrisName || 'Scan QRIS'
+                  : 'QRIS belum diaktifkan.'
               }
               primaryColor={primaryColor}
               onClick={() => setPaymentMethod('qris')}
             />
+            {paymentMethod === 'qris' &&
+              paymentSettings.qrisEnabled &&
+              paymentSettings.qrisImageUrl && (
+                <div className="md:col-span-2">
+                  <div className="rounded-[26px] border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="relative h-[240px] w-[240px] overflow-hidden rounded-3xl border border-[#E2E8F0] bg-white p-3">
+                        <Image
+                          src={paymentSettings.qrisImageUrl}
+                          alt="QRIS"
+                          fill
+                          className="object-contain p-3"
+                        />
+                      </div>
+
+                      <p className="mt-4 text-center text-sm font-bold text-[#64748B]">
+                        Scan QRIS untuk melakukan pembayaran.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+            )}
           </div>
         </section>
       </div>

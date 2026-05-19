@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -22,6 +24,8 @@ export type ProductCardItem = {
   promoLabel?: string;
   stockQty?: number;
   stockEnabled?: boolean;
+  isOutOfStock?: boolean;
+  unit?: string;
   isFeatured?: boolean;
 };
 
@@ -41,7 +45,49 @@ export function ProductCard({
   cardStyle = 'rounded_card',
 }: ProductCardProps) {
   const isOutOfStock =
-    product.stockEnabled === true && (product.stockQty ?? 0) <= 0;
+    product.isOutOfStock === true ||
+    (product.stockEnabled === true && (product.stockQty ?? 0) <= 0);
+
+  const addToCart = () => {
+    if (isOutOfStock) return;
+
+    try {
+      const raw = localStorage.getItem('talase_cart');
+      const parsed = raw ? JSON.parse(raw) : [];
+      const cart = Array.isArray(parsed) ? parsed : [];
+
+      const existing = cart.find(
+        (item: any) => item.slug === product.slug || item.id === product.id,
+      );
+
+      const maxQty = product.stockEnabled
+        ? Math.max(product.stockQty ?? 1, 1)
+        : 999;
+
+      if (existing) {
+        existing.qty = Math.min(Number(existing.qty || 1) + 1, maxQty);
+      } else {
+        cart.push({
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          imageUrl: product.imageUrl,
+          price: product.price,
+          stockQty: product.stockQty ?? 0,
+          stockEnabled: product.stockEnabled === true,
+          unit: product.unit || 'pcs',
+          qty: 1,
+          note: '',
+        });
+      }
+
+      localStorage.setItem('talase_cart', JSON.stringify(cart));
+      window.dispatchEvent(new Event('talase-cart-updated'));
+      window.location.href = '/cart';
+    } catch (_) {
+      window.location.href = `/cart?add=${encodeURIComponent(product.slug)}`;
+    }
+  };
 
   const categorySlug =
     product.categorySlug ||
@@ -124,9 +170,11 @@ export function ProductCard({
         </div>
 
         <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-          <Link
-            href={isOutOfStock ? `/products/${product.slug}` : '/cart'}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-white shadow-sm transition hover:scale-[1.01] md:h-10 md:gap-2 md:rounded-2xl md:px-3 md:text-xs"
+          <button
+            type="button"
+            onClick={addToCart}
+            disabled={isOutOfStock}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-white shadow-sm transition hover:scale-[1.01] disabled:cursor-not-allowed md:h-10 md:gap-2 md:rounded-2xl md:px-3 md:text-xs"
             style={{
               backgroundColor: isOutOfStock ? '#94A3B8' : primaryColor,
             }}
@@ -138,7 +186,7 @@ export function ProductCard({
           >
             <ShoppingCart size={14} />
             {isOutOfStock ? 'Habis' : 'Keranjang'}
-          </Link>
+          </button>
 
           <Link
             href={`/products/${product.slug}`}

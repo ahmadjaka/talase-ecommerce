@@ -179,6 +179,20 @@ export default async function HomePage() {
         primaryColor={store.primaryColor}
         accentColor={store.accentColor}
       />
+
+      <AddToCartScript
+        products={store.products.map((product) => ({
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          imageUrl: product.imageUrl,
+          price: product.price,
+          stockQty: product.stockQty,
+          stockEnabled: product.stockEnabled,
+          isOutOfStock: product.isOutOfStock,
+          unit: product.unit,
+        }))}
+      />
     </main>
   );
 }
@@ -525,11 +539,27 @@ function LatestProductSection({
 
       <ProductSection
         products={store.latestProducts.slice(0, 8)}
+        viewAllLabel={content.allItemsLabel}
         primaryColor={store.primaryColor}
         accentColor={store.accentColor}
         cardStyle={store.productCardStyle}
         gridClassName={productGridClass}
       />
+
+      <div className="mt-7 md:hidden">
+        <Link
+          href="/products"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-4 text-sm font-black transition hover:bg-[#F8FAFC]"
+          style={{
+            borderColor: store.primaryColor,
+            color: store.primaryColor,
+            backgroundColor: 'transparent',
+          }}
+        >
+          {content.allItemsLabel}
+          <ArrowRight size={17} />
+        </Link>
+      </div>
     </section>
   );
 }
@@ -1112,6 +1142,83 @@ function StoreStatusPage({
       </div>
     </main>
   );
+}
+
+function AddToCartScript({
+  products,
+}: {
+  products: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    imageUrl: string;
+    price: number;
+    stockQty: number;
+    stockEnabled: boolean;
+    isOutOfStock: boolean;
+    unit: string;
+  }>;
+}) {
+  const script = `
+(function () {
+  const CART_KEY = 'talase_cart';
+  const products = ${JSON.stringify(products)};
+
+  function readCart() {
+    try {
+      const raw = localStorage.getItem(CART_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new Event('talase-cart-updated'));
+  }
+
+  function addToCart(slug) {
+    const product = products.find((p) => p.slug === slug || p.id === slug);
+    if (!product || product.isOutOfStock) return;
+
+    const cart = readCart();
+    const existing = cart.find((item) => item.slug === product.slug || item.id === product.id);
+
+    if (existing) {
+      const maxQty = product.stockEnabled ? Math.max(product.stockQty, 1) : 999;
+      existing.qty = Math.min(Number(existing.qty || 1) + 1, maxQty);
+    } else {
+      cart.push({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        price: product.price,
+        stockQty: product.stockQty,
+        stockEnabled: product.stockEnabled,
+        unit: product.unit,
+        qty: 1,
+        note: ''
+      });
+    }
+
+    saveCart(cart);
+  }
+
+  document.querySelectorAll('[data-add-cart]').forEach((button) => {
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+
+      const slug = this.getAttribute('data-add-cart');
+      if (slug) addToCart(slug);
+    });
+  });
+})();
+`;
+
+  return <script dangerouslySetInnerHTML={{ __html: script }} />;
 }
 
 function normalizeWhatsapp(value: string) {

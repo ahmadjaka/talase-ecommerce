@@ -51,15 +51,55 @@ export default async function CheckoutPage() {
     unit: product.unit,
   }));
 
-  const paymentSettings = store.paymentSettings;
+  const rawPaymentSettings = (store.paymentSettings || {}) as any;
+
+  const hasBankAccount =
+    Boolean(rawPaymentSettings.bankName) &&
+    Boolean(rawPaymentSettings.bankAccountNumber);
+
+  const hasQrisImage = Boolean(rawPaymentSettings.qrisImageUrl);
+
+  const paymentSettings = {
+    transferEnabled:
+      rawPaymentSettings.transferEnabled === true ||
+      (rawPaymentSettings.transferEnabled !== false && hasBankAccount),
+
+    qrisEnabled:
+      rawPaymentSettings.qrisEnabled === true ||
+      rawPaymentSettings.qrisActive === true ||
+      (rawPaymentSettings.qrisEnabled !== false && hasQrisImage),
+
+    paymentProofRequired: rawPaymentSettings.paymentProofRequired === true,
+
+    bankName: rawPaymentSettings.bankName || '',
+    bankAccountNumber: rawPaymentSettings.bankAccountNumber || '',
+    bankAccountOwner:
+      rawPaymentSettings.bankAccountOwner ||
+      rawPaymentSettings.bankAccountName ||
+      '',
+
+    qrisImageUrl: rawPaymentSettings.qrisImageUrl || '',
+    qrisName:
+      rawPaymentSettings.qrisName ||
+      rawPaymentSettings.businessName ||
+      store.businessName ||
+      '',
+    qrisMerchantNumber: rawPaymentSettings.qrisMerchantNumber || '',
+  };
 
   return (
-    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
+    <main
+      className="min-h-screen bg-[#F7FAFC] text-[#102033]"
+      style={{ fontFamily: store.fontFamily }}
+    >
       <StoreHeader
         businessName={store.businessName}
         businessType={store.businessType}
         contentType={store.contentType}
         logoUrl={store.logoUrl}
+        primaryColor={store.primaryColor}
+        secondaryColor={store.secondaryColor}
+        accentColor={store.accentColor}
       />
 
       <section className="border-b border-[#E2E8F0] bg-white">
@@ -102,7 +142,7 @@ export default async function CheckoutPage() {
           subdomain={store.subdomain || subdomain || ''}
           primaryColor={store.primaryColor}
           accentColor={store.accentColor}
-          paymentSettings={store.paymentSettings}
+          paymentSettings={paymentSettings}
         />
       </section>
 
@@ -345,6 +385,12 @@ function CheckoutScript({
     transferEnabled: boolean;
     qrisEnabled: boolean;
     paymentProofRequired: boolean;
+    bankName: string;
+    bankAccountNumber: string;
+    bankAccountOwner: string;
+    qrisImageUrl: string;
+    qrisName: string;
+    qrisMerchantNumber: string;
   };
 }) {
   const script = `
