@@ -380,14 +380,19 @@ async function resolveStoreMeta(
     );
 
     if (websiteSettings?.mitraId) {
-      const mitra = await findFirstByAnyStringField('mitras', [
-        ['mitraId', str(websiteSettings.mitraId)],
-      ]);
+      const mitraId = str(websiteSettings.mitraId);
+
+      const mitra =
+        (await getDocumentById('mitras', mitraId)) ||
+        (await findFirstByAnyStringField('mitras', [
+          ['mitraId', mitraId],
+          ['subdomain', subdomain],
+        ]));
 
       return normalizeStoreMeta({
         ...(mitra ?? {}),
         ...websiteSettings,
-        mitraId: websiteSettings.mitraId,
+        mitraId,
         subdomain,
       });
     }
@@ -401,10 +406,12 @@ async function resolveStoreMeta(
 
     if (mitra?.mitraId || mitra?.id) {
       const mitraId = str(mitra.mitraId || mitra.id);
-      const settings = await findFirstByAnyStringField(
-        'website_settings',
-        [['mitraId', mitraId]],
-      );
+
+      const settings =
+        (await getDocumentById('website_settings', mitraId)) ||
+        (await findFirstByAnyStringField('website_settings', [
+          ['mitraId', mitraId],
+        ]));
 
       return normalizeStoreMeta({
         ...mitra,
@@ -470,6 +477,36 @@ async function findFirstByAnyStringField(
   }
 
   return null;
+}
+
+async function getDocumentById(
+  collectionName: string,
+  documentId: string,
+): Promise<FirestoreRecord | null> {
+  if (!documentId) return null;
+
+  const rows = await safeRunQuery({
+    from: [{ collectionId: collectionName }],
+    where: {
+      fieldFilter: {
+        field: { fieldPath: '__name__' },
+        op: 'EQUAL',
+        value: {
+          referenceValue: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/databases/(default)/documents/${collectionName}/${documentId}`,
+        },
+      },
+    },
+    limit: 1,
+  });
+
+  const first = rows.find((row: any) => row.document)?.document;
+
+  if (!first) return null;
+
+  return {
+    id: first.name.split('/').pop(),
+    ...parseFirestoreFields(first.fields),
+  };
 }
 
 async function fetchThemeSettings(
