@@ -95,3 +95,40 @@ export async function getOnlineOrderItems(orderId: string) {
     },
   });
 }
+
+export async function getOnlineOrderByCode(orderCode: string) {
+  if (!orderCode) return null;
+
+  const rows = await runQuery({
+    structuredQuery: {
+      from: [{ collectionId: 'online_orders' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'orderCode' },
+          op: 'EQUAL',
+          value: { stringValue: orderCode },
+        },
+      },
+      limit: 1,
+    },
+  });
+
+  return rows[0] || null;
+}
+
+export async function getOnlineOrdersByCodes(orderCodes: string[]) {
+  const cleanCodes = Array.from(
+    new Set(orderCodes.map((e) => String(e || '').trim()).filter(Boolean)),
+  ).slice(0, 20);
+
+  const orders = [];
+
+  for (const code of cleanCodes) {
+    const order = await getOnlineOrderByCode(code);
+    if (order) orders.push(order);
+  }
+
+  return orders.sort((a: any, b: any) => {
+    return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+  });
+}

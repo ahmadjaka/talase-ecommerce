@@ -279,7 +279,23 @@ export function CheckoutClient({
 
       localStorage.removeItem(CART_KEY);
       window.dispatchEvent(new Event('talase-cart-updated'));
-      window.location.href = `/payment/${encodeURIComponent(result.orderCode)}`;
+      const orderCodesRaw = localStorage.getItem('talase_order_codes');
+      const orderCodes = orderCodesRaw ? JSON.parse(orderCodesRaw) : [];
+
+      const nextOrderCodes = Array.from(
+        new Set([result.orderCode, ...orderCodes]),
+      ).slice(0, 20);
+
+      localStorage.setItem(
+        'talase_order_codes',
+        JSON.stringify(nextOrderCodes),
+      );
+
+      document.cookie = `talase_order_codes=${encodeURIComponent(
+        JSON.stringify(nextOrderCodes),
+      )}; path=/; max-age=31536000; SameSite=Lax`;
+
+      window.location.href = `/order/${encodeURIComponent(result.orderCode)}`;
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Gagal membuat pesanan.');
     } finally {

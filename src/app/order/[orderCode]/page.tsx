@@ -22,12 +22,14 @@ import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
 import {
   getOnlineOrderItems,
-  getOnlineOrdersBySubdomain,
+  getOnlineOrderByCode,
+  getOnlineOrdersByCodes,
 } from '@/lib/order-resolver';
 import {
   getStorefrontData,
   resolveSubdomain,
 } from '@/lib/store-resolver';
+import { cookies, headers } from 'next/headers';
 
 type OnlineOrder = {
   id: string;
@@ -81,13 +83,28 @@ export default async function OrderTrackingPage({
   const trackingSubdomain =
     ((store as any).subdomain || subdomain || '').toString();
 
-  const orders = (await getOnlineOrdersBySubdomain(
-    trackingSubdomain,
-  )) as OnlineOrder[];
+  const cookieStore = await cookies();
+  const rawCodes = cookieStore.get('talase_order_codes')?.value || '';
 
-  const selectedOrder =
-    orders.find((order) => order.orderCode === orderCode) ??
-    (orders.length === 1 ? orders[0] : null);
+  let customerOrderCodes: string[] = [];
+
+  try {
+    customerOrderCodes = JSON.parse(decodeURIComponent(rawCodes));
+  } catch (_) {
+    customerOrderCodes = [];
+  }
+
+  const isListPage = orderCode === 'list' || orderCode === 'index';
+
+  const orders = isListPage
+    ? ((await getOnlineOrdersByCodes(customerOrderCodes)) as OnlineOrder[])
+    : ([] as OnlineOrder[]);
+
+  const selectedOrder = isListPage
+    ? orders.length === 1
+      ? orders[0]
+      : null
+    : ((await getOnlineOrderByCode(orderCode)) as OnlineOrder | null);
 
   const selectedItems = selectedOrder
     ? ((await getOnlineOrderItems(selectedOrder.id)) as OnlineOrderItem[])
@@ -479,15 +496,6 @@ export default async function OrderTrackingPage({
                   />
                 </div>
               </div>
-
-              <Link
-                href={`/payment/${selectedOrder.orderCode || orderCode}`}
-                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-xl transition hover:scale-[1.01]"
-                style={{ backgroundColor: store.primaryColor }}
-              >
-                Lihat Pembayaran
-                <ArrowRight size={18} />
-              </Link>
 
               <Link
                 href="/products"
