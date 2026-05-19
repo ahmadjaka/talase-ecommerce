@@ -1125,7 +1125,26 @@ function OrderTrackingScript({
     }
   }
 
-  init();
+  function startWhenReady() {
+    const ready =
+      document.getElementById('order-list') &&
+      document.getElementById('order-list-message') &&
+      document.getElementById('order-detail') &&
+      document.getElementById('order-detail-empty');
+
+    if (!ready) {
+      window.setTimeout(startWhenReady, 150);
+      return;
+    }
+
+    init();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startWhenReady, { once: true });
+  } else {
+    window.setTimeout(startWhenReady, 50);
+  }
 })();
 `;
 
