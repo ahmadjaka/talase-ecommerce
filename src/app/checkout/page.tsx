@@ -99,7 +99,7 @@ export default async function CheckoutPage() {
       <section className="mx-auto grid max-w-7xl gap-6 px-5 py-8 md:px-8 lg:grid-cols-[1fr_390px]">
         <CheckoutClient
           products={safeProducts}
-          subdomain={store.subdomain}
+          subdomain={store.subdomain || subdomain || ''}
           primaryColor={store.primaryColor}
           accentColor={store.accentColor}
           paymentSettings={store.paymentSettings}
