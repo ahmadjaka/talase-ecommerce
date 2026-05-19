@@ -58,6 +58,8 @@ export default async function OrderTrackingPage({
   };
 
   const mitraId = storeMeta.mitraId || storeMeta.id || '';
+  const trackingSubdomain =
+    ((store as any).subdomain || subdomain || '').toString();
 
   return (
     <main
@@ -353,7 +355,7 @@ export default async function OrderTrackingPage({
       <OrderTrackingScript
         orderCode={orderCode}
         mitraId={mitraId}
-        subdomain={subdomain}
+        subdomain={trackingSubdomain}
         primaryColor={store.primaryColor}
         accentColor={store.accentColor}
       />
