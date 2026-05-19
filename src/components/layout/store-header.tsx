@@ -234,24 +234,26 @@ export function StoreHeader({
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 rounded-[24px] border border-[#E2E8F0] bg-white/95 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_rgba(15,23,42,0.08)] md:gap-2">
-            {headerSocials.map((social) => {
+            {[
+              { href: facebookUrl || '#', icon: Facebook, label: 'Facebook' },
+              { href: instagramUrl || '#', icon: Instagram, label: 'Instagram' },
+              { href: tiktokUrl || '#', icon: TiktokIcon, label: 'TikTok' },
+            ].map((social) => {
               const Icon = social.icon;
+              const hasUrl = social.href !== '#';
 
               return (
                 <a
                   key={social.label}
-                  href={social.href || '#'}
-                  target={
-                    social.href && social.href !== '#'
-                      ? '_blank'
-                      : undefined
-                  }
-                  rel="noopener noreferrer"
+                  href={social.href}
+                  target={hasUrl ? '_blank' : undefined}
+                  rel={hasUrl ? 'noopener noreferrer' : undefined}
                   aria-label={social.label}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_18px_rgba(15,23,42,0.07)] transition md:h-11 md:w-11 ${
-                    social.href && social.href !== '#'
-                      ? 'hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-[#F8FAFC]'
-                      : 'cursor-default opacity-50'
+                  onClick={(e) => {
+                    if (!hasUrl) e.preventDefault();
+                  }}
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_18px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-[#F8FAFC] md:h-11 md:w-11 ${
+                    hasUrl ? '' : 'opacity-60'
                   }`}
                 >
                   <Icon size={17} />
@@ -272,9 +274,7 @@ export function StoreHeader({
               {cartCount > 0 && (
                 <div
                   className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white px-1 text-[10px] font-black text-white shadow-[0_8px_16px_rgba(15,23,42,0.20)]"
-                  style={{
-                    backgroundColor: accentColor,
-                  }}
+                  style={{ backgroundColor: accentColor }}
                 >
                   {cartCount > 99 ? '99+' : cartCount}
                 </div>
