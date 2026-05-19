@@ -684,12 +684,16 @@ function OrderTrackingScript({
   }
 
   async function findOrders() {
+    console.log('TRACKING_SUBDOMAIN =', subdomain);
+
     const q = query(
       collection(db, 'online_orders'),
       where('subdomain', '==', subdomain)
     );
 
     const snap = await getDocs(q);
+
+    console.log('ORDER_COUNT =', snap.docs.length);
 
     const orders = snap.docs.map((doc) => ({
       id: doc.id,
