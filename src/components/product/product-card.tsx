@@ -2,8 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   ChevronRight,
-  ShoppingBag,
-  Star,
+  ShoppingCart,
   Tag,
 } from 'lucide-react';
 
@@ -19,29 +18,49 @@ export type ProductCardItem = {
   sold?: number;
   rating?: number;
   category?: string;
+  categorySlug?: string;
   promoLabel?: string;
   stockQty?: number;
+  stockEnabled?: boolean;
+  isFeatured?: boolean;
 };
 
 type ProductCardProps = {
   product: ProductCardItem;
   highlight?: boolean;
+  primaryColor?: string;
+  accentColor?: string;
+  cardStyle?: string;
 };
 
 export function ProductCard({
   product,
   highlight = false,
+  primaryColor = '#009A3E',
+  accentColor = '#FF7A1A',
+  cardStyle = 'rounded_card',
 }: ProductCardProps) {
-  const isOutOfStock = (product.stockQty ?? 1) <= 0;
+  const isOutOfStock =
+    product.stockEnabled === true && (product.stockQty ?? 0) <= 0;
+
+  const categorySlug =
+    product.categorySlug ||
+    product.category
+      ?.toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-') ||
+    '';
 
   return (
     <div
-      className={`group overflow-hidden rounded-[28px] border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl ${
-        highlight ? 'border-[#009A3E]/25' : 'border-[#E2E8F0]'
-      }`}
+      className={resolveProductCardClass(cardStyle)}
+      style={{
+        borderColor: highlight ? `${primaryColor}40` : '#E2E8F0',
+      }}
     >
       <Link href={`/products/${product.slug}`} className="block">
-        <div className="relative aspect-square overflow-hidden bg-[#F1F5F9]">
+        <div className={resolveProductImageClass(cardStyle)}>
           <Image
             src={product.imageUrl}
             alt={product.name}
@@ -51,16 +70,19 @@ export function ProductCard({
             }`}
           />
 
-          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+          <div className="absolute left-2 top-2 flex flex-wrap gap-2">
             {product.promoLabel && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#009A3E] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg">
-                <Tag size={11} />
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg"
+                style={{ backgroundColor: accentColor }}
+              >
+                <Tag size={10} />
                 {product.promoLabel}
               </span>
             )}
 
             {isOutOfStock && (
-              <span className="rounded-full bg-[#E60046] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg">
+              <span className="rounded-full bg-[#E60046] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg">
                 Habis
               </span>
             )}
@@ -68,64 +90,116 @@ export function ProductCard({
         </div>
       </Link>
 
-      <div className="p-4">
+      <div className={resolveProductBodyClass(cardStyle)}>
         {product.category && (
-          <Link href={`/category/${product.category.toLowerCase()}`}>
-            <p className="text-xs font-black uppercase tracking-wide text-[#009A3E]">
+          <Link href={`/category/${categorySlug}`}>
+            <p
+              className="line-clamp-1 text-[10px] font-black uppercase tracking-wide md:text-[11px]"
+              style={{ color: primaryColor }}
+            >
               {product.category}
             </p>
           </Link>
         )}
 
         <Link href={`/products/${product.slug}`}>
-          <h3 className="mt-2 line-clamp-2 min-h-[42px] text-sm font-black leading-5 text-[#1E293B] transition group-hover:text-[#009A3E] md:text-base">
+          <h3 className="mt-1.5 line-clamp-2 min-h-[38px] text-[13px] font-black leading-[19px] text-[#102033] md:text-[15px] md:leading-5">
             {product.name}
           </h3>
         </Link>
 
-        <div className="mt-3">
-          <p className="text-lg font-black text-[#1E293B]">
+        <div className="mt-2 flex flex-wrap items-end gap-x-2 gap-y-1">
+          <p
+            className="text-[15px] font-black md:text-lg"
+            style={{ color: primaryColor }}
+          >
             {formatCurrency(product.price)}
           </p>
 
           {product.originalPrice && product.originalPrice > product.price && (
-            <p className="mt-1 text-xs font-bold text-[#94A3B8] line-through">
+            <p className="pb-0.5 text-[11px] font-bold text-[#94A3B8] line-through md:text-xs">
               {formatCurrency(product.originalPrice)}
             </p>
           )}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold text-[#64748B]">
-          <span className="flex items-center gap-1">
-            <Star size={13} fill="currentColor" className="text-[#FACC15]" />
-            {product.rating ?? 0}
-          </span>
-
-          <span>Terjual {product.sold ?? 0}</span>
-        </div>
-
-        <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+        <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
           <Link
-            href={`/products/${product.slug}`}
-            className="inline-flex items-center justify-center gap-1 rounded-2xl border border-[#E2E8F0] px-3 py-3 text-xs font-black text-[#1E293B] transition hover:bg-[#F8FAFC]"
+            href={isOutOfStock ? `/products/${product.slug}` : '/cart'}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 text-[11px] font-black text-white shadow-sm transition hover:scale-[1.01] md:h-10 md:gap-2 md:rounded-2xl md:px-3 md:text-xs"
+            style={{
+              backgroundColor: isOutOfStock ? '#94A3B8' : primaryColor,
+            }}
+            aria-label={
+              isOutOfStock
+                ? 'Produk habis'
+                : `Tambah ${product.name} ke keranjang`
+            }
           >
-            Detail
-            <ChevronRight size={14} />
+            <ShoppingCart size={14} />
+            {isOutOfStock ? 'Habis' : 'Keranjang'}
           </Link>
 
           <Link
-            href={isOutOfStock ? `/products/${product.slug}` : '/cart'}
-            className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-lg transition ${
-              isOutOfStock
-                ? 'bg-[#94A3B8]'
-                : 'bg-[#009A3E] hover:scale-[1.04]'
-            }`}
-            aria-label="Tambah ke keranjang"
+            href={`/products/${product.slug}`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#E2E8F0] text-[#102033] transition hover:bg-[#F8FAFC] md:h-10 md:w-10 md:rounded-2xl"
+            aria-label={`Detail ${product.name}`}
           >
-            <ShoppingBag size={17} />
+            <ChevronRight size={15} />
           </Link>
         </div>
       </div>
     </div>
   );
+}
+
+function resolveProductCardClass(cardStyle: string) {
+  const base =
+    'group overflow-hidden border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl';
+
+  if (cardStyle === 'minimal_card') {
+    return `${base} rounded-2xl`;
+  }
+
+  if (cardStyle === 'image_focus_card') {
+    return `${base} rounded-[24px] md:rounded-[28px]`;
+  }
+
+  if (cardStyle === 'compact_card') {
+    return `${base} rounded-2xl`;
+  }
+
+  if (cardStyle === 'classic_card') {
+    return `${base} rounded-xl`;
+  }
+
+  return `${base} rounded-[22px] md:rounded-[24px]`;
+}
+
+function resolveProductImageClass(cardStyle: string) {
+  if (cardStyle === 'image_focus_card') {
+    return 'relative aspect-[4/5] overflow-hidden bg-[#F1F5F9]';
+  }
+
+  if (cardStyle === 'compact_card') {
+    return 'relative aspect-[1.12/1] overflow-hidden bg-[#F1F5F9] md:aspect-[1.2/1]';
+  }
+
+  if (cardStyle === 'classic_card') {
+    return 'relative aspect-[1.08/1] overflow-hidden bg-[#F1F5F9] md:aspect-[1.15/1]';
+  }
+
+  return 'relative aspect-square overflow-hidden bg-[#F1F5F9]';
+}
+
+function resolveProductBodyClass(cardStyle: string) {
+  if (cardStyle === 'compact_card') {
+    return 'p-2.5 md:p-3';
+  }
+
+  if (cardStyle === 'classic_card') {
+    return 'p-3 md:p-3.5';
+  }
+
+  return 'p-3 md:p-4';
 }

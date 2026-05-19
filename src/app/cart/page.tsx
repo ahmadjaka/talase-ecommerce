@@ -4,81 +4,66 @@ import { headers } from 'next/headers';
 import {
   ArrowLeft,
   ArrowRight,
-  Minus,
-  Plus,
+  PackageSearch,
   ShoppingBag,
-  Trash2,
 } from 'lucide-react';
 
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
 
-import { resolveSubdomain } from '@/lib/store-resolver';
-import { formatCurrency } from '@/lib/format';
+import {
+  getStorefrontData,
+  resolveSubdomain,
+} from '@/lib/store-resolver';
 
-async function getStoreData(subdomain: string | null) {
-  const cartItems = [
-    {
-      id: '1',
-      slug: 'kopi-arabica-premium',
-      name: 'Kopi Arabica Premium',
-      imageUrl:
-        'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1200&auto=format&fit=crop',
-      price: 45000,
-      qty: 2,
-      note: 'Giling medium',
-    },
-    {
-      id: '2',
-      slug: 'paket-snack-umkm',
-      name: 'Paket Snack UMKM',
-      imageUrl:
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop',
-      price: 25000,
-      qty: 1,
-      note: '',
-    },
-  ];
+import { CartClient } from './cart-client';
 
-  const subtotal = cartItems.reduce(
-    (total, item) => total + item.price * item.qty,
-    0,
-  );
-
-  const discount = 10000;
-  const total = subtotal - discount;
-
-  return {
-    businessName: subdomain
-      ? `${subdomain.toUpperCase()} Store`
-      : 'Talase Store',
-    businessType: 'Official Ecommerce Store',
-    cartItems,
-    subtotal,
-    discount,
-    total,
-  };
-}
-
-export default async function CartPage() {
+export default async function CartPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ add?: string }>;
+}) {
+  const query = searchParams ? await searchParams : {};
   const headerList = await headers();
   const hostname = headerList.get('host') || '';
 
   const subdomain = resolveSubdomain(hostname);
-  const store = await getStoreData(subdomain);
+  const store = await getStorefrontData(subdomain);
+
+  if (store.resolveStatus !== 'ready') {
+    return <StoreStatusPage store={store} />;
+  }
+
+  const safeProducts = store.products.map((product) => ({
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    imageUrl: product.imageUrl,
+    price: product.price,
+    stockQty: product.stockQty,
+    stockEnabled: product.stockEnabled,
+    isOutOfStock: product.isOutOfStock,
+    unit: product.unit,
+  }));
 
   return (
-    <main className="min-h-screen bg-[#F6FAF7] text-[#1E293B]">
+    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
       <StoreHeader
         businessName={store.businessName}
         businessType={store.businessType}
+        contentType={store.contentType}
+        logoUrl={store.logoUrl}
+        primaryColor={store.primaryColor}
+        secondaryColor={store.secondaryColor}
+        accentColor={store.accentColor}
       />
 
       <section className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-7xl px-5 py-6 md:px-8">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 text-sm font-black text-[#009A3E]"
+            className="inline-flex items-center gap-2 text-sm font-black"
+            style={{ color: store.primaryColor }}
           >
             <ArrowLeft size={17} />
             Lanjut belanja
@@ -94,163 +79,51 @@ export default async function CartPage() {
               </p>
             </div>
 
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#E8F7EE] px-4 py-2 text-sm font-black text-[#009A3E]">
+            <div
+              id="cart-count-badge"
+              className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-black"
+              style={{ backgroundColor: '#FFF1E6', color: store.accentColor }}
+            >
               <ShoppingBag size={17} />
-              {store.cartItems.length} Item
+              0 Item
             </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-6 px-5 py-8 md:px-8 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-4">
-          {store.cartItems.length > 0 ? (
-            store.cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-[30px] border border-[#E2E8F0] bg-white p-4 shadow-sm md:p-5"
-              >
-                <div className="grid gap-4 md:grid-cols-[130px_1fr_auto] md:items-center">
-                  <Link
-                    href={`/products/${item.slug}`}
-                    className="relative aspect-square overflow-hidden rounded-[24px] bg-[#F1F5F9]"
-                  >
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </Link>
-
-                  <div>
-                    <Link href={`/products/${item.slug}`}>
-                      <h2 className="text-lg font-black text-[#1E293B] transition hover:text-[#009A3E] md:text-xl">
-                        {item.name}
-                      </h2>
-                    </Link>
-
-                    <p className="mt-2 text-xl font-black text-[#009A3E]">
-                      {formatCurrency(item.price)}
-                    </p>
-
-                    <div className="mt-4 rounded-2xl bg-[#F8FAFC] px-4 py-3">
-                      <p className="text-xs font-black uppercase tracking-wide text-[#94A3B8]">
-                        Catatan Item
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-[#64748B]">
-                        {item.note || 'Tidak ada catatan'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">
-                    <div className="inline-flex h-12 items-center rounded-2xl border border-[#E2E8F0] bg-white px-3">
-                      <button className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#64748B]">
-                        <Minus size={15} />
-                      </button>
-
-                      <span className="mx-5 text-sm font-black">
-                        {item.qty}
-                      </span>
-
-                      <button className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#E8F7EE] text-[#009A3E]">
-                        <Plus size={15} />
-                      </button>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-[#94A3B8]">
-                        Subtotal
-                      </p>
-                      <p className="mt-1 text-lg font-black text-[#1E293B]">
-                        {formatCurrency(item.price * item.qty)}
-                      </p>
-                    </div>
-
-                    <button className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1F1] text-[#E60046] transition hover:scale-[1.04]">
-                      <Trash2 size={17} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="rounded-[30px] border border-dashed border-[#CBD5E1] bg-white p-10 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#F1F5F9] text-[#94A3B8]">
-                <ShoppingBag size={28} />
-              </div>
-
-              <h2 className="mt-5 text-xl font-black text-[#1E293B]">
-                Keranjang masih kosong
-              </h2>
-
-              <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-7 text-[#64748B]">
-                Pilih produk dari katalog toko untuk mulai membuat pesanan.
-              </p>
-
-              <Link
-                href="/products"
-                className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#009A3E] px-6 py-4 text-sm font-black text-white shadow-lg"
-              >
-                Lihat Produk
-                <ArrowRight size={17} />
-              </Link>
-            </div>
-          )}
-        </div>
-
-        <aside className="h-fit rounded-[30px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6 lg:sticky lg:top-24">
-          <h2 className="text-2xl font-black">Ringkasan Pesanan</h2>
-
-          <div className="mt-6 space-y-4">
-            <SummaryRow label="Subtotal" value={formatCurrency(store.subtotal)} />
-            <SummaryRow label="Diskon" value={`- ${formatCurrency(store.discount)}`} />
-            <div className="border-t border-dashed border-[#CBD5E1] pt-4">
-              <SummaryRow
-                label="Total"
-                value={formatCurrency(store.total)}
-                bold
-              />
-            </div>
-          </div>
-
-          <Link
-            href="/checkout"
-            className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#009A3E] px-6 py-4 text-sm font-black text-white shadow-xl transition hover:scale-[1.01]"
-          >
-            Lanjut Checkout
-            <ArrowRight size={18} />
-          </Link>
-
-          <Link
-            href="/products"
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#1E293B] transition hover:bg-[#F8FAFC]"
-          >
-            Tambah Produk Lain
-          </Link>
-
-          <div className="mt-6 rounded-2xl bg-[#F8FAFC] p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-[#94A3B8]">
-              Catatan
-            </p>
-            <p className="mt-2 text-sm font-semibold leading-7 text-[#64748B]">
-              Ongkir dan metode pembayaran akan dipilih pada halaman checkout.
-            </p>
-          </div>
-        </aside>
+        <CartClient
+          products={safeProducts}
+          primaryColor={store.primaryColor}
+        />
       </section>
 
-      <StoreFooter businessName={store.businessName} />
+      <StoreFooter
+        businessName={store.businessName}
+        businessType={store.businessType}
+        contentType={store.contentType}
+        phone={store.phone}
+        whatsapp={store.whatsapp}
+        email={store.email}
+        address={store.address}
+        instagramUrl={store.instagramUrl}
+        facebookUrl={store.facebookUrl}
+        tiktokUrl={store.tiktokUrl}
+        primaryColor={store.primaryColor}
+        accentColor={store.accentColor}
+      />
+
     </main>
   );
 }
 
 function SummaryRow({
+  id,
   label,
   value,
   bold = false,
 }: {
+  id: string;
   label: string;
   value: string;
   bold?: boolean;
@@ -260,7 +133,7 @@ function SummaryRow({
       <p
         className={
           bold
-            ? 'text-base font-black text-[#1E293B]'
+            ? 'text-base font-black text-[#102033]'
             : 'text-sm font-bold text-[#64748B]'
         }
       >
@@ -268,14 +141,353 @@ function SummaryRow({
       </p>
 
       <p
+        id={id}
         className={
           bold
-            ? 'text-2xl font-black text-[#009A3E]'
-            : 'text-sm font-black text-[#1E293B]'
+            ? 'text-2xl font-black text-[#073B70]'
+            : 'text-sm font-black text-[#102033]'
         }
       >
         {value}
       </p>
     </div>
   );
+}
+
+function StoreStatusPage({
+  store,
+}: {
+  store: Awaited<ReturnType<typeof getStorefrontData>>;
+}) {
+  const title =
+    store.resolveStatus === 'not_found'
+      ? 'Toko tidak ditemukan'
+      : store.resolveStatus === 'inactive'
+        ? 'Toko sedang tidak aktif'
+        : 'Website toko belum dipublish';
+
+  return (
+    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
+      <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-5 py-12">
+        <div className="w-full rounded-[34px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm md:p-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FFF1E6] text-[#FF7A1A]">
+            <PackageSearch size={30} />
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black md:text-4xl">
+            {title}
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-7 text-[#64748B] md:text-base">
+            Toko belum tersedia untuk menerima pesanan online.
+          </p>
+
+          <Link
+            href="/"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#073B70] px-6 py-4 text-sm font-black text-white shadow-lg"
+          >
+            Kembali
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function CartScript({
+  products,
+  addSlug,
+  primaryColor,
+}: {
+  products: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    imageUrl: string;
+    price: number;
+    stockQty: number;
+    stockEnabled: boolean;
+    isOutOfStock: boolean;
+    unit: string;
+  }>;
+  addSlug: string;
+  primaryColor: string;
+}) {
+  const script = `
+(function () {
+  const CART_KEY = 'talase_cart';
+  const products = ${JSON.stringify(products)};
+  const addSlug = ${JSON.stringify(addSlug)};
+  const primaryColor = ${JSON.stringify(primaryColor)};
+
+  function formatCurrency(value) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0
+    }).format(Number(value || 0));
+  }
+
+  function readCart() {
+    try {
+      const rawCart = localStorage.getItem(CART_KEY);
+      const parsedCart = rawCart ? JSON.parse(rawCart) : [];
+
+      if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+        return parsedCart;
+      }
+
+      const rawDraft = localStorage.getItem('talase_checkout_draft');
+      const parsedDraft = rawDraft ? JSON.parse(rawDraft) : null;
+
+      if (parsedDraft && Array.isArray(parsedDraft.items)) {
+        return parsedDraft.items;
+      }
+
+      const orderKeys = Object.keys(localStorage)
+        .filter((key) => key.startsWith('talase_order_'))
+        .sort()
+        .reverse();
+
+      for (const key of orderKeys) {
+        const rawOrder = localStorage.getItem(key);
+        const parsedOrder = rawOrder ? JSON.parse(rawOrder) : null;
+
+        if (parsedOrder && Array.isArray(parsedOrder.items)) {
+          return parsedOrder.items;
+        }
+      }
+
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new Event('talase-cart-updated'));
+  }
+
+  function normalizeCart(cart) {
+    return cart
+      .map((item) => {
+        const product = products.find(
+          (p) => p.slug === item.slug || p.id === item.id
+        );
+
+        const source = product || item;
+
+        if (!source || source.isOutOfStock) return null;
+
+        const stockEnabled = source.stockEnabled === true;
+        const stockQty = Number(source.stockQty || item.stockQty || 0);
+        const maxQty = stockEnabled ? Math.max(stockQty, 1) : 999;
+        const qty = Math.min(Math.max(Number(item.qty || 1), 1), maxQty);
+
+        return {
+          id: source.id || item.id || source.slug || item.slug,
+          slug: source.slug || item.slug,
+          name: source.name || item.name || 'Produk',
+          imageUrl: source.imageUrl || item.imageUrl || '',
+          price: Number(source.price || item.price || 0),
+          stockQty,
+          stockEnabled,
+          unit: source.unit || item.unit || '',
+          qty,
+          note: typeof item.note === 'string' ? item.note : ''
+        };
+      })
+      .filter(Boolean)
+      .filter((item) => item.slug && item.price > 0);
+  }
+
+  function addProductFromQuery() {
+    if (!addSlug) return;
+
+    const product = products.find(
+      (p) => p.slug === addSlug || p.slug === decodeURIComponent(addSlug)
+    );
+    if (!product || product.isOutOfStock) return;
+
+    const cart = normalizeCart(readCart());
+    const existing = cart.find((item) => item.slug === product.slug);
+
+    if (existing) {
+      const maxQty = product.stockEnabled ? Math.max(product.stockQty, 1) : 999;
+      existing.qty = Math.min(existing.qty + 1, maxQty);
+    } else {
+      cart.push({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        price: product.price,
+        stockQty: product.stockQty,
+        stockEnabled: product.stockEnabled,
+        unit: product.unit,
+        qty: 1,
+        note: ''
+      });
+    }
+
+    saveCart(cart);
+
+    if (window.history && window.location.search.includes('add=')) {
+      window.history.replaceState({}, '', '/cart');
+    }
+  }
+
+  function changeQty(slug, delta) {
+    const cart = normalizeCart(readCart());
+    const item = cart.find((row) => row.slug === slug);
+    if (!item) return;
+
+    const maxQty = item.stockEnabled ? Math.max(item.stockQty, 1) : 999;
+    item.qty = Math.min(Math.max(item.qty + delta, 1), maxQty);
+    saveCart(cart);
+    render();
+  }
+
+  function removeItem(slug) {
+    const cart = normalizeCart(readCart()).filter((item) => item.slug !== slug);
+    saveCart(cart);
+    render();
+  }
+
+  function updateNote(slug, value) {
+    const cart = normalizeCart(readCart());
+    const item = cart.find((row) => row.slug === slug);
+    if (!item) return;
+
+    item.note = value;
+    saveCart(cart);
+  }
+
+  function renderEmpty() {
+    return \`
+      <div class="rounded-[30px] border border-dashed border-[#CBD5E1] bg-white p-10 text-center">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#F1F5F9] text-[#94A3B8]">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <h2 class="mt-5 text-xl font-black text-[#102033]">Keranjang masih kosong</h2>
+        <p class="mx-auto mt-2 max-w-md text-sm font-semibold leading-7 text-[#64748B]">
+          Pilih produk dari katalog toko untuk mulai membuat pesanan.
+        </p>
+        <a href="/products" class="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-lg" style="background:\${primaryColor}">
+          Lihat Produk
+        </a>
+      </div>
+    \`;
+  }
+
+  function renderItem(item) {
+    return \`
+      <div class="rounded-[30px] border border-[#E2E8F0] bg-white p-4 shadow-sm md:p-5">
+        <div class="grid gap-4 md:grid-cols-[130px_1fr_auto] md:items-center">
+          <a href="/products/\${item.slug}" class="relative block aspect-square overflow-hidden rounded-[24px] bg-[#F1F5F9]">
+            \${item.imageUrl
+              ? '<img src="' + item.imageUrl + '" alt="' + item.name + '" class="h-full w-full object-cover" />'
+              : '<div class="flex h-full w-full items-center justify-center text-[#94A3B8]">Produk</div>'
+            }
+          </a>
+
+          <div>
+            <a href="/products/\${item.slug}">
+              <h2 class="text-lg font-black text-[#102033] transition md:text-xl">\${item.name}</h2>
+            </a>
+
+            <p class="mt-2 text-xl font-black" style="color:\${primaryColor}">
+              \${formatCurrency(item.price)}
+            </p>
+
+            <div class="mt-4 rounded-2xl bg-[#F8FAFC] px-4 py-3">
+              <p class="text-xs font-black uppercase tracking-wide text-[#94A3B8]">Catatan Item</p>
+              <input
+                data-note="\${item.slug}"
+                value="\${item.note || ''}"
+                placeholder="Contoh: warna, ukuran, level pedas, dll"
+                class="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-semibold text-[#64748B] outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 md:flex-col md:items-end">
+            <div class="inline-flex h-12 items-center rounded-2xl border border-[#E2E8F0] bg-white px-3">
+              <button data-minus="\${item.slug}" class="flex h-8 w-8 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#64748B]">−</button>
+              <span class="mx-5 text-sm font-black">\${item.qty}</span>
+              <button data-plus="\${item.slug}" class="flex h-8 w-8 items-center justify-center rounded-xl text-white" style="background:\${primaryColor}">+</button>
+            </div>
+
+            <div class="text-right">
+              <p class="text-xs font-bold text-[#94A3B8]">Subtotal</p>
+              <p class="mt-1 text-lg font-black text-[#102033]">\${formatCurrency(item.price * item.qty)}</p>
+            </div>
+
+            <button data-remove="\${item.slug}" class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1F1] text-[#E60046] transition hover:scale-[1.04]">
+              🗑
+            </button>
+          </div>
+        </div>
+      </div>
+    \`;
+  }
+
+  function render() {
+    const cart = normalizeCart(readCart());
+
+    if (cart.length > 0) {
+      saveCart(cart);
+    }
+
+    const itemsEl = document.getElementById('cart-items');
+    const badgeEl = document.getElementById('cart-count-badge');
+    const subtotalEl = document.getElementById('cart-subtotal');
+    const discountEl = document.getElementById('cart-discount');
+    const totalEl = document.getElementById('cart-total');
+    const checkoutButton = document.getElementById('checkout-button');
+
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const discount = 0;
+    const total = Math.max(subtotal - discount, 0);
+    const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+
+    if (itemsEl) {
+      itemsEl.innerHTML = cart.length ? cart.map(renderItem).join('') : renderEmpty();
+    }
+
+    if (badgeEl) badgeEl.innerHTML = '<span>🛍</span>' + itemCount + ' Item';
+    if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
+    if (discountEl) discountEl.textContent = '- ' + formatCurrency(discount);
+    if (totalEl) totalEl.textContent = formatCurrency(total);
+
+    if (checkoutButton) {
+      checkoutButton.style.pointerEvents = cart.length ? 'auto' : 'none';
+      checkoutButton.style.opacity = cart.length ? '1' : '0.5';
+    }
+
+    document.querySelectorAll('[data-minus]').forEach((button) => {
+      button.addEventListener('click', () => changeQty(button.getAttribute('data-minus'), -1));
+    });
+
+    document.querySelectorAll('[data-plus]').forEach((button) => {
+      button.addEventListener('click', () => changeQty(button.getAttribute('data-plus'), 1));
+    });
+
+    document.querySelectorAll('[data-remove]').forEach((button) => {
+      button.addEventListener('click', () => removeItem(button.getAttribute('data-remove')));
+    });
+
+    document.querySelectorAll('[data-note]').forEach((input) => {
+      input.addEventListener('input', () => updateNote(input.getAttribute('data-note'), input.value));
+    });
+  }
+
+  addProductFromQuery();
+  render();
+})();
+`;
+
+  return <script dangerouslySetInnerHTML={{ __html: script }} />;
 }

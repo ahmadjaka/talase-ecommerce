@@ -1,12 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import type { ReactNode } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   ChevronRight,
-  Heart,
-  Minus,
-  Plus,
+  PackageSearch,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
@@ -17,111 +17,14 @@ import {
 
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
+import { ProductDetailActions } from './product-detail-actions';
 
-import { resolveSubdomain } from '@/lib/store-resolver';
+import {
+  getPublicProductDetail,
+  resolveSubdomain,
+  type StoreProduct,
+} from '@/lib/store-resolver';
 import { formatCurrency } from '@/lib/format';
-
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  price: number;
-  originalPrice: number;
-  sold: number;
-  rating: number;
-  category: string;
-  promoLabel: string;
-  stockQty: number;
-  unit: string;
-  isFeatured: boolean;
-};
-
-async function getStoreData(subdomain: string | null) {
-  const products: Product[] = [
-    {
-      id: '1',
-      slug: 'kopi-arabica-premium',
-      name: 'Kopi Arabica Premium',
-      description:
-        'Kopi arabica pilihan dengan aroma khas, rasa seimbang, dan cocok untuk penikmat kopi harian maupun hadiah premium.',
-      imageUrl:
-        'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1200&auto=format&fit=crop',
-      price: 45000,
-      originalPrice: 55000,
-      sold: 128,
-      rating: 4.9,
-      category: 'Minuman',
-      promoLabel: 'Promo',
-      stockQty: 24,
-      unit: 'pcs',
-      isFeatured: true,
-    },
-    {
-      id: '2',
-      slug: 'paket-snack-umkm',
-      name: 'Paket Snack UMKM',
-      description:
-        'Paket snack lokal berkualitas, cocok untuk camilan keluarga, hampers, acara kantor, dan kebutuhan harian.',
-      imageUrl:
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop',
-      price: 25000,
-      originalPrice: 30000,
-      sold: 87,
-      rating: 4.8,
-      category: 'Makanan',
-      promoLabel: 'Best Seller',
-      stockQty: 18,
-      unit: 'pack',
-      isFeatured: true,
-    },
-    {
-      id: '3',
-      slug: 'kaos-premium-talase',
-      name: 'Kaos Premium Talase',
-      description:
-        'Kaos premium dengan bahan nyaman, desain clean, dan cocok digunakan untuk aktivitas harian.',
-      imageUrl:
-        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1200&auto=format&fit=crop',
-      price: 99000,
-      originalPrice: 125000,
-      sold: 42,
-      rating: 5.0,
-      category: 'Fashion',
-      promoLabel: 'Unggulan',
-      stockQty: 9,
-      unit: 'pcs',
-      isFeatured: true,
-    },
-    {
-      id: '4',
-      slug: 'tumbler-eksklusif',
-      name: 'Tumbler Eksklusif',
-      description:
-        'Tumbler elegan untuk menemani aktivitas harian, menjaga minuman tetap nyaman dibawa ke mana saja.',
-      imageUrl:
-        'https://images.unsplash.com/photo-1602143407151-7111542de6e8?q=80&w=1200&auto=format&fit=crop',
-      price: 65000,
-      originalPrice: 79000,
-      sold: 63,
-      rating: 4.7,
-      category: 'Aksesoris',
-      promoLabel: 'Diskon',
-      stockQty: 12,
-      unit: 'pcs',
-      isFeatured: false,
-    },
-  ];
-
-  return {
-    businessName: subdomain
-      ? `${subdomain.toUpperCase()} Store`
-      : 'Talase Store',
-    businessType: 'Official Ecommerce Store',
-    products,
-  };
-}
 
 export default async function ProductDetailPage({
   params,
@@ -133,37 +36,63 @@ export default async function ProductDetailPage({
   const hostname = headerList.get('host') || '';
 
   const subdomain = resolveSubdomain(hostname);
-  const store = await getStoreData(subdomain);
+  const { store, product, relatedProducts } =
+    await getPublicProductDetail(subdomain, slug);
 
-  const product =
-    store.products.find((item) => item.slug === slug) ||
-    store.products[0];
+  if (store.resolveStatus !== 'ready') {
+    return <StoreStatusPage store={store} />;
+  }
 
-  const relatedProducts = store.products.filter(
-    (item) => item.id !== product.id,
-  );
+  if (!product) {
+    return <ProductNotFoundPage store={store} />;
+  }
 
-  const isOutOfStock = product.stockQty <= 0;
+  const isOutOfStock = product.isOutOfStock;
+  const galleryImages = buildGalleryImages(product);
+  const cartHref = isOutOfStock
+    ? `/products/${product.slug}`
+    : `/cart?add=${encodeURIComponent(product.slug)}`;
 
   return (
-    <main className="min-h-screen bg-[#F6FAF7] text-[#1E293B]">
+    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
       <StoreHeader
         businessName={store.businessName}
         businessType={store.businessType}
+        contentType={store.contentType}
+        logoUrl={store.logoUrl}
+        primaryColor={store.primaryColor}
+        secondaryColor={store.secondaryColor}
+        accentColor={store.accentColor}
       />
 
       <section className="border-b border-[#E2E8F0] bg-white">
         <div className="mx-auto max-w-7xl px-5 py-5 md:px-8">
           <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#64748B]">
-            <Link href="/" className="hover:text-[#009A3E]">
+            <Link
+              href="/"
+              className="transition"
+              style={{ color: store.primaryColor }}
+            >
               Beranda
             </Link>
             <ChevronRight size={15} />
-            <Link href="/products" className="hover:text-[#009A3E]">
+            <Link
+              href="/products"
+              className="transition"
+              style={{ color: store.primaryColor }}
+            >
               Produk
             </Link>
             <ChevronRight size={15} />
-            <span className="line-clamp-1 text-[#1E293B]">
+            <Link
+              href={`/category/${product.categorySlug}`}
+              className="transition"
+              style={{ color: store.primaryColor }}
+            >
+              {product.category}
+            </Link>
+            <ChevronRight size={15} />
+            <span className="line-clamp-1 text-[#102033]">
               {product.name}
             </span>
           </div>
@@ -173,7 +102,8 @@ export default async function ProductDetailPage({
       <section className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-12">
         <Link
           href="/products"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-black text-[#009A3E]"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-black"
+          style={{ color: store.primaryColor }}
         >
           <ArrowLeft size={17} />
           Kembali ke semua produk
@@ -191,10 +121,25 @@ export default async function ProductDetailPage({
               />
 
               <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#009A3E] px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-lg">
-                  <Tag size={13} />
-                  {product.promoLabel}
-                </span>
+                {product.promoLabel && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-lg"
+                    style={{ backgroundColor: store.accentColor }}
+                  >
+                    <Tag size={13} />
+                    {product.promoLabel}
+                  </span>
+                )}
+
+                {product.isFeatured && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-lg"
+                    style={{ backgroundColor: store.primaryColor }}
+                  >
+                    <Star size={13} fill="currentColor" />
+                    Unggulan
+                  </span>
+                )}
 
                 {isOutOfStock && (
                   <span className="rounded-full bg-[#E60046] px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-lg">
@@ -204,11 +149,11 @@ export default async function ProductDetailPage({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[product.imageUrl, product.imageUrl, product.imageUrl].map(
-                (image, index) => (
+            {galleryImages.length > 1 && (
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {galleryImages.slice(0, 3).map((image, index) => (
                   <div
-                    key={index}
+                    key={`${image}-${index}`}
                     className="relative aspect-square overflow-hidden rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC]"
                   >
                     <Image
@@ -218,18 +163,24 @@ export default async function ProductDetailPage({
                       className="object-cover"
                     />
                   </div>
-                ),
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-[34px] border border-[#E2E8F0] bg-white p-6 shadow-sm md:p-8">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#E8F7EE] px-4 py-2 text-xs font-black uppercase tracking-wide text-[#009A3E]">
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide"
+              style={{
+                backgroundColor: '#FFF1E6',
+                color: store.accentColor,
+              }}
+            >
               <Sparkles size={14} />
               {product.category}
             </div>
 
-            <h1 className="mt-5 text-3xl font-black leading-tight text-[#1E293B] md:text-5xl">
+            <h1 className="mt-5 text-3xl font-black leading-tight text-[#102033] md:text-5xl">
               {product.name}
             </h1>
 
@@ -239,124 +190,155 @@ export default async function ProductDetailPage({
                 {product.rating}
               </span>
 
-              <span>Terjual {product.sold}</span>
+              {product.sold > 0 && <span>Terjual {product.sold}</span>}
 
               <span>
                 Stok:{' '}
-                <strong className={isOutOfStock ? 'text-[#E60046]' : 'text-[#009A3E]'}>
-                  {isOutOfStock ? 'Habis' : `${product.stockQty} ${product.unit}`}
+                <strong
+                  className={isOutOfStock ? 'text-[#E60046]' : ''}
+                  style={!isOutOfStock ? { color: store.primaryColor } : undefined}
+                >
+                  {product.stockEnabled
+                    ? isOutOfStock
+                      ? 'Habis'
+                      : `${product.stockQty} ${product.unit || 'pcs'}`
+                    : 'Tersedia'}
                 </strong>
               </span>
             </div>
 
             <div className="mt-6 rounded-[26px] bg-[#F8FAFC] p-5">
-              <p className="text-4xl font-black text-[#009A3E]">
+              <p
+                className="text-4xl font-black"
+                style={{ color: store.primaryColor }}
+              >
                 {formatCurrency(product.price)}
               </p>
 
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <p className="text-sm font-bold text-[#94A3B8] line-through">
-                  {formatCurrency(product.originalPrice)}
-                </p>
+              {product.originalPrice > product.price && (
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <p className="text-sm font-bold text-[#94A3B8] line-through">
+                    {formatCurrency(product.originalPrice)}
+                  </p>
 
-                <span className="rounded-full bg-[#FFF1E6] px-3 py-1 text-xs font-black text-[#FF7A1A]">
-                  Hemat {formatCurrency(product.originalPrice - product.price)}
-                </span>
-              </div>
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-black"
+                    style={{
+                      backgroundColor: '#FFF1E6',
+                      color: store.accentColor,
+                    }}
+                  >
+                    Hemat{' '}
+                    {formatCurrency(product.originalPrice - product.price)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="mt-6">
-              <h2 className="text-lg font-black text-[#1E293B]">
+              <h2 className="text-lg font-black text-[#102033]">
                 Deskripsi Produk
               </h2>
 
-              <p className="mt-3 text-sm font-semibold leading-8 text-[#64748B] md:text-base">
-                {product.description}
+              <p className="mt-3 whitespace-pre-line text-sm font-semibold leading-8 text-[#64748B] md:text-base">
+                {product.description ||
+                  'Produk ini tersedia di website toko dan dapat dipesan secara online.'}
               </p>
             </div>
 
-            <div className="mt-7 grid gap-4 md:grid-cols-[auto_1fr]">
-              <div className="inline-flex h-14 items-center justify-between rounded-2xl border border-[#E2E8F0] bg-white px-4">
-                <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#64748B]">
-                  <Minus size={16} />
-                </button>
-
-                <span className="mx-5 text-sm font-black">1</span>
-
-                <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E8F7EE] text-[#009A3E]">
-                  <Plus size={16} />
-                </button>
-              </div>
-
-              <Link
-                href={isOutOfStock ? '/products' : '/cart'}
-                className={`inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black text-white shadow-xl transition ${
-                  isOutOfStock
-                    ? 'bg-[#94A3B8]'
-                    : 'bg-[#009A3E] hover:scale-[1.01]'
-                }`}
-              >
-                <ShoppingBag size={18} />
-                {isOutOfStock ? 'Produk Habis' : 'Tambah ke Keranjang'}
-              </Link>
-            </div>
-
-            <button className="mt-4 inline-flex h-13 w-full items-center justify-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#1E293B] transition hover:bg-[#F8FAFC]">
-              <Heart size={18} />
-              Simpan Produk
-            </button>
+            <ProductDetailActions
+              product={{
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                imageUrl: product.imageUrl,
+                price: product.price,
+                stockQty: product.stockQty,
+                stockEnabled: product.stockEnabled,
+                isOutOfStock: product.isOutOfStock,
+                unit: product.unit,
+              }}
+              storeName={store.businessName}
+              formattedPrice={formatCurrency(product.price)}
+              primaryColor={store.primaryColor}
+            />
 
             <div className="mt-7 grid gap-4 md:grid-cols-3">
               <InfoCard
                 icon={<ShieldCheck size={20} />}
                 title="Aman"
                 subtitle="Pesanan tercatat"
+                primaryColor={store.primaryColor}
               />
 
               <InfoCard
                 icon={<Truck size={20} />}
-                title="Cepat"
-                subtitle="Diproses toko"
+                title="Diproses"
+                subtitle="Langsung oleh kami"
+                primaryColor={store.primaryColor}
               />
 
               <InfoCard
                 icon={<ShoppingBag size={20} />}
                 title="Mudah"
                 subtitle="Checkout online"
+                primaryColor={store.primaryColor}
               />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-14 md:px-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black md:text-3xl">
-              Produk Terkait
-            </h2>
-            <p className="mt-2 text-sm font-semibold text-[#64748B]">
-              Produk lain yang mungkin cocok untuk Anda.
-            </p>
+      {relatedProducts.length > 0 && (
+        <section className="mx-auto max-w-7xl px-5 pb-14 md:px-8">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-black md:text-3xl">
+                Produk Terkait
+              </h2>
+              <p className="mt-2 text-sm font-semibold text-[#64748B]">
+                Produk lain dari kategori yang sama.
+              </p>
+            </div>
+
+            <Link
+              href="/products"
+              className="hidden items-center gap-2 text-sm font-black md:inline-flex"
+              style={{ color: store.primaryColor }}
+            >
+              Lihat Semua
+              <ChevronRight size={16} />
+            </Link>
           </div>
 
-          <Link
-            href="/products"
-            className="hidden items-center gap-2 text-sm font-black text-[#009A3E] md:inline-flex"
-          >
-            Lihat Semua
-            <ChevronRight size={16} />
-          </Link>
-        </div>
+          <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
+            {relatedProducts.map((item) => (
+              <RelatedProductCard
+                key={item.id}
+                product={item}
+                primaryColor={store.primaryColor}
+                accentColor={store.accentColor}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-        <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
-          {relatedProducts.map((item) => (
-            <RelatedProductCard key={item.id} product={item} />
-          ))}
-        </div>
-      </section>
+      <StoreFooter
+        businessName={store.businessName}
+        businessType={store.businessType}
+        contentType={store.contentType}
+        phone={store.phone}
+        whatsapp={store.whatsapp}
+        email={store.email}
+        address={store.address}
+        instagramUrl={store.instagramUrl}
+        facebookUrl={store.facebookUrl}
+        tiktokUrl={store.tiktokUrl}
+        primaryColor={store.primaryColor}
+        accentColor={store.accentColor}
+      />
 
-      <StoreFooter businessName={store.businessName} />
     </main>
   );
 }
@@ -365,18 +347,23 @@ function InfoCard({
   icon,
   title,
   subtitle,
+  primaryColor,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   subtitle: string;
+  primaryColor: string;
 }) {
   return (
     <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E8F7EE] text-[#009A3E]">
+      <div
+        className="flex h-11 w-11 items-center justify-center rounded-2xl text-white"
+        style={{ backgroundColor: primaryColor }}
+      >
         {icon}
       </div>
 
-      <h3 className="mt-3 text-sm font-black text-[#1E293B]">
+      <h3 className="mt-3 text-sm font-black text-[#102033]">
         {title}
       </h3>
 
@@ -387,8 +374,16 @@ function InfoCard({
   );
 }
 
-function RelatedProductCard({ product }: { product: Product }) {
-  const isOutOfStock = product.stockQty <= 0;
+function RelatedProductCard({
+  product,
+  primaryColor,
+  accentColor,
+}: {
+  product: StoreProduct;
+  primaryColor: string;
+  accentColor: string;
+}) {
+  const isOutOfStock = product.isOutOfStock;
 
   return (
     <div className="group overflow-hidden rounded-[28px] border border-[#E2E8F0] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl">
@@ -403,26 +398,42 @@ function RelatedProductCard({ product }: { product: Product }) {
             }`}
           />
 
-          <div className="absolute left-3 top-3">
-            <span className="rounded-full bg-[#009A3E] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg">
-              {product.promoLabel}
-            </span>
+          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+            {product.promoLabel && (
+              <span
+                className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg"
+                style={{ backgroundColor: accentColor }}
+              >
+                {product.promoLabel}
+              </span>
+            )}
+
+            {isOutOfStock && (
+              <span className="rounded-full bg-[#E60046] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg">
+                Habis
+              </span>
+            )}
           </div>
         </div>
       </Link>
 
       <div className="p-4">
-        <p className="text-xs font-black uppercase tracking-wide text-[#009A3E]">
-          {product.category}
-        </p>
+        <Link href={`/category/${product.categorySlug}`}>
+          <p
+            className="text-xs font-black uppercase tracking-wide"
+            style={{ color: primaryColor }}
+          >
+            {product.category}
+          </p>
+        </Link>
 
         <Link href={`/products/${product.slug}`}>
-          <h3 className="mt-2 line-clamp-2 min-h-[42px] text-sm font-black leading-5 text-[#1E293B] transition group-hover:text-[#009A3E] md:text-base">
+          <h3 className="mt-2 line-clamp-2 min-h-[42px] text-sm font-black leading-5 text-[#102033] transition md:text-base">
             {product.name}
           </h3>
         </Link>
 
-        <p className="mt-3 text-lg font-black text-[#1E293B]">
+        <p className="mt-3 text-lg font-black text-[#102033]">
           {formatCurrency(product.price)}
         </p>
 
@@ -432,9 +443,291 @@ function RelatedProductCard({ product }: { product: Product }) {
             {product.rating}
           </span>
 
-          <span>Terjual {product.sold}</span>
+          <span>
+            {product.stockEnabled
+              ? product.isOutOfStock
+                ? 'Habis'
+                : `Stok ${product.stockQty}`
+              : product.unit || 'Tersedia'}
+          </span>
         </div>
       </div>
     </div>
   );
+}
+
+function StoreStatusPage({
+  store,
+}: {
+  store: Awaited<ReturnType<typeof import('@/lib/store-resolver').getStorefrontData>>;
+}) {
+  const title =
+    store.resolveStatus === 'not_found'
+      ? 'Toko tidak ditemukan'
+      : store.resolveStatus === 'inactive'
+        ? 'Toko sedang tidak aktif'
+        : 'Website toko belum dipublish';
+
+  const description =
+    store.resolveStatus === 'not_found'
+      ? 'Subdomain toko yang Anda buka belum terdaftar atau belum tersedia.'
+      : store.resolveStatus === 'inactive'
+        ? 'Website toko ini sedang tidak aktif. Silakan hubungi pemilik toko.'
+        : 'Pemilik toko belum mengaktifkan publikasi website ecommerce.';
+
+  return (
+    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
+      <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-5 py-12">
+        <div className="w-full rounded-[34px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm md:p-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FFF1E6] text-[#FF7A1A]">
+            <PackageSearch size={30} />
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black md:text-4xl">
+            {title}
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-7 text-[#64748B] md:text-base">
+            {description}
+          </p>
+
+          <Link
+            href="/"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#073B70] px-6 py-4 text-sm font-black text-white shadow-lg transition hover:scale-[1.02]"
+          >
+            Kembali
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ProductNotFoundPage({
+  store,
+}: {
+  store: Awaited<ReturnType<typeof import('@/lib/store-resolver').getStorefrontData>>;
+}) {
+  return (
+    <main className="min-h-screen bg-[#F7FAFC] text-[#102033]">
+      <StoreHeader
+        businessName={store.businessName}
+        businessType={store.businessType}
+        contentType={store.contentType}
+        logoUrl={store.logoUrl}
+      />
+
+      <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center px-5 py-12">
+        <div className="w-full rounded-[34px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm md:p-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FFF1E6] text-[#FF7A1A]">
+            <PackageSearch size={30} />
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black md:text-4xl">
+            Produk tidak ditemukan
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-7 text-[#64748B] md:text-base">
+            Produk yang Anda buka tidak tersedia, belum dipublish, atau sudah
+            dinonaktifkan oleh toko.
+          </p>
+
+          <Link
+            href="/products"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-lg transition hover:scale-[1.02]"
+            style={{ backgroundColor: store.primaryColor }}
+          >
+            Lihat Produk Lain
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
+
+      <StoreFooter
+        businessName={store.businessName}
+        businessType={store.businessType}
+        contentType={store.contentType}
+        phone={store.phone}
+        whatsapp={store.whatsapp}
+        email={store.email}
+        address={store.address}
+        instagramUrl={store.instagramUrl}
+        facebookUrl={store.facebookUrl}
+        tiktokUrl={store.tiktokUrl}
+        primaryColor={store.primaryColor}
+        accentColor={store.accentColor}
+      />
+
+      <AddToCartScript
+        products={store.products.map((item) => ({
+          id: item.id,
+          slug: item.slug,
+          name: item.name,
+          imageUrl: item.imageUrl,
+          price: item.price,
+          stockQty: item.stockQty,
+          stockEnabled: item.stockEnabled,
+          isOutOfStock: item.isOutOfStock,
+          unit: item.unit,
+        }))}
+      />
+    </main>
+  );
+}
+
+function buildGalleryImages(product: StoreProduct): string[] {
+  const images = [
+    product.imageUrl,
+    ...product.imageUrls,
+    ...product.secondaryImageUrls,
+  ].filter(Boolean);
+
+  return Array.from(new Set(images));
+}
+
+function AddToCartScript({
+  products,
+}: {
+  products: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    imageUrl: string;
+    price: number;
+    stockQty: number;
+    stockEnabled: boolean;
+    isOutOfStock: boolean;
+    unit: string;
+  }>;
+}) {
+  const script = `
+(function () {
+  const CART_KEY = 'talase_cart';
+  const products = ${JSON.stringify(products)};
+
+  function readCart() {
+    try {
+      const raw = localStorage.getItem(CART_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new Event('talase-cart-updated'));
+  }
+
+  function getQty() {
+    const el = document.getElementById('product-qty');
+    const qty = Number(el ? el.textContent : '1');
+    return Math.max(qty || 1, 1);
+  }
+
+  function setQty(value) {
+    const el = document.getElementById('product-qty');
+    if (!el) return;
+    el.textContent = String(Math.max(Number(value) || 1, 1));
+  }
+
+  function addToCart(slug, qty) {
+    const product = products.find((p) => p.slug === slug || p.id === slug);
+    if (!product || product.isOutOfStock) return;
+
+    const cart = readCart();
+    const existing = cart.find((item) => item.slug === product.slug || item.id === product.id);
+
+    const addQty = Math.max(Number(qty || 1), 1);
+    const maxQty = product.stockEnabled ? Math.max(product.stockQty, 1) : 999;
+
+    if (existing) {
+      existing.qty = Math.min(Number(existing.qty || 1) + addQty, maxQty);
+    } else {
+      cart.push({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        price: product.price,
+        stockQty: product.stockQty,
+        stockEnabled: product.stockEnabled,
+        unit: product.unit,
+        qty: Math.min(addQty, maxQty),
+        note: ''
+      });
+    }
+
+    saveCart(cart);
+  }
+
+  document.querySelectorAll('[data-qty-minus]').forEach((button) => {
+    button.addEventListener('click', function () {
+      setQty(getQty() - 1);
+    });
+  });
+
+  document.querySelectorAll('[data-qty-plus]').forEach((button) => {
+    button.addEventListener('click', function () {
+      setQty(getQty() + 1);
+    });
+  });
+
+  document.querySelectorAll('[data-add-cart]').forEach((button) => {
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+
+      const slug = this.getAttribute('data-add-cart');
+      if (!slug) return;
+
+      addToCart(slug, getQty());
+      window.location.href = '/cart';
+    });
+  });
+
+  document.querySelectorAll('[data-share-product]').forEach((button) => {
+    button.addEventListener('click', async function () {
+      const title = this.getAttribute('data-share-title') || 'Produk';
+      const price = this.getAttribute('data-share-price') || '';
+      const store = this.getAttribute('data-share-store') || 'Toko';
+      const url = window.location.href;
+
+      const text =
+        title + '\\n' +
+        price + '\\n\\n' +
+        'Cek produk ini di ' + store + ':\\n' +
+        url;
+
+      try {
+        localStorage.setItem('talase_last_shared_product', JSON.stringify({
+          title,
+          price,
+          store,
+          url,
+          text,
+          sharedAt: new Date().toISOString()
+        }));
+
+        if (navigator.share) {
+          await navigator.share({
+            title: title,
+            text: text,
+            url: url
+          });
+          return;
+        }
+
+        await navigator.clipboard.writeText(text);
+        alert('Link produk berhasil disalin.');
+      } catch (_) {
+        alert('Gagal membagikan produk.');
+      }
+    });
+  });
+})();
+`;
+
+  return <script dangerouslySetInnerHTML={{ __html: script }} />;
 }

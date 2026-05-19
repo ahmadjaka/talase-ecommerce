@@ -28,6 +28,12 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 body {
