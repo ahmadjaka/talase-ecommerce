@@ -28,7 +28,7 @@ export default function Loading() {
               <div className="mt-3 h-4 w-5/6 max-w-lg animate-pulse rounded-full bg-[#E7F0EA]" />
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <div className="h-12 w-36 animate-pulse rounded-2xl bg-[#006B4F]" />
+                <div className="h-12 w-36 animate-pulse rounded-2xl bg-[#CFE6DA]" />
                 <div className="h-12 w-32 animate-pulse rounded-2xl bg-[#E7F0EA]" />
               </div>
             </div>
