@@ -21,7 +21,10 @@ import {
 
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
-import { OrderTrackingClient } from '@/components/order/order-tracking-client';
+import {
+  getOnlineOrderItems,
+  getOnlineOrdersBySubdomain,
+} from '@/lib/order-resolver';
 
 import {
   getStorefrontData,
@@ -59,8 +62,23 @@ export default async function OrderTrackingPage({
   };
 
   const mitraId = storeMeta.mitraId || storeMeta.id || '';
+
   const trackingSubdomain =
     ((store as any).subdomain || subdomain || '').toString();
+
+  const orders = await getOnlineOrdersBySubdomain(
+    trackingSubdomain,
+  );
+
+  const selectedOrder =
+    orders.find(
+      (order) => order.orderCode === orderCode,
+    ) ??
+    (orders.length === 1 ? orders[0] : null);
+
+  const selectedItems = selectedOrder
+    ? await getOnlineOrderItems(selectedOrder.id)
+    : [];
 
   return (
     <main
@@ -353,13 +371,6 @@ export default async function OrderTrackingPage({
         accentColor={store.accentColor}
       />
 
-      <OrderTrackingClient
-        orderCode={orderCode}
-        mitraId={mitraId}
-        subdomain={trackingSubdomain}
-        primaryColor={store.primaryColor}
-        accentColor={store.accentColor}
-      />
     </main>
   );
 }
