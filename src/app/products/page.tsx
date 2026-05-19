@@ -95,7 +95,6 @@ export default async function ProductsPage() {
           stockQty: product.stockQty,
           stockEnabled: product.stockEnabled,
         }))}
-        categories={categories}
         primaryColor={store.primaryColor}
         accentColor={store.accentColor}
         cardStyle={store.productCardStyle}
