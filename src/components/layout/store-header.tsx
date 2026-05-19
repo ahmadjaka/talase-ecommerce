@@ -7,10 +7,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Beef,
   ChevronRight,
+  Facebook,
   Home,
+  Instagram,
   LayoutGrid,
   Menu,
   MonitorSmartphone,
+  PackageSearch,
   Scissors,
   Search,
   Shirt,
@@ -28,6 +31,12 @@ type StoreHeaderProps = {
   businessType?: string;
   contentType?: string;
   logoUrl?: string;
+
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  whatsappUrl?: string;
+
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
@@ -46,32 +55,87 @@ export function StoreHeader({
   businessType,
   contentType = 'product',
   logoUrl,
+
+  facebookUrl,
+  instagramUrl,
+  tiktokUrl,
+  whatsappUrl,
+
   primaryColor = '#073B70',
   secondaryColor = '#0F4C81',
   accentColor = '#FF7A1A',
 }: StoreHeaderProps) {
   const pathname = usePathname();
+
   const [open, setOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  const copy = useMemo(() => getHeaderCopy(contentType), [contentType]);
+  const copy = useMemo(
+    () => getHeaderCopy(contentType),
+    [contentType],
+  );
+
   const LogoIcon = getStoreIcon(contentType);
 
   const menus = [
-    { label: 'Beranda', href: '/', icon: Home },
-    { label: copy.itemLabel, href: '/products', icon: LayoutGrid },
-    { label: 'Keranjang', href: '/cart', icon: ShoppingBag },
+    {
+      label: 'Beranda',
+      href: '/',
+      icon: Home,
+    },
+    {
+      label: copy.itemLabel,
+      href: '/products',
+      icon: LayoutGrid,
+    },
+    {
+      label: 'Pesanan',
+      href: '/order',
+      icon: PackageSearch,
+    },
+    {
+      label: 'Keranjang',
+      href: '/cart',
+      icon: ShoppingBag,
+    },
   ];
 
-  const desktopMenus = menus.filter((menu) => menu.href !== '/cart');
+  const desktopMenus = menus.filter(
+    (menu) => menu.href !== '/cart',
+  );
+
+  const socials = [
+    {
+      href: facebookUrl,
+      icon: Facebook,
+      label: 'Facebook',
+    },
+    {
+      href: instagramUrl,
+      icon: Instagram,
+      label: 'Instagram',
+    },
+    {
+      href: tiktokUrl,
+      icon: Music2Icon,
+      label: 'TikTok',
+    },
+    {
+      href: whatsappUrl,
+      icon: WhatsappIcon,
+      label: 'WhatsApp',
+    },
+  ].filter((item) => item.href);
 
   useEffect(() => {
     const syncCart = () => {
       try {
         const items = getCartItems();
+
         const total = items.reduce((sum, item) => {
           const quantity =
-            typeof item.qty === 'number' && item.qty > 0
+            typeof item.qty === 'number' &&
+            item.qty > 0
               ? item.qty
               : 1;
 
@@ -86,37 +150,58 @@ export function StoreHeader({
 
     syncCart();
 
-    window.addEventListener('storage', syncCart);
-    window.addEventListener('talase-cart-updated', syncCart);
-    window.addEventListener('focus', syncCart);
+    window.addEventListener(
+      'storage',
+      syncCart,
+    );
+
+    window.addEventListener(
+      'talase-cart-updated',
+      syncCart,
+    );
+
+    window.addEventListener(
+      'focus',
+      syncCart,
+    );
 
     return () => {
-      window.removeEventListener('storage', syncCart);
-      window.removeEventListener('talase-cart-updated', syncCart);
-      window.removeEventListener('focus', syncCart);
+      window.removeEventListener(
+        'storage',
+        syncCart,
+      );
+
+      window.removeEventListener(
+        'talase-cart-updated',
+        syncCart,
+      );
+
+      window.removeEventListener(
+        'focus',
+        syncCart,
+      );
     };
   }, []);
 
   return (
     <>
       <header
-        className="sticky top-0 z-50 border-b border-white/10 text-white backdrop-blur-xl"
-        style={{
-          background: `linear-gradient(135deg, ${primaryColor}F2, ${secondaryColor}F2)`,
-        }}
+        className="sticky top-0 z-50 border-b border-white/10 bg-white/95 backdrop-blur-xl"
       >
-        <div className="mx-auto flex min-h-[68px] max-w-7xl items-center justify-between gap-4 px-4 py-2 md:min-h-[72px] md:px-8">
+        <div className="mx-auto flex min-h-[74px] max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20 lg:hidden"
-              aria-label="Buka menu"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] transition hover:bg-[#F8FAFC] lg:hidden"
             >
               <Menu size={20} />
             </button>
 
-            <Link href="/" className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/"
+              className="flex min-w-0 items-center gap-3"
+            >
               <StoreLogo
                 businessName={businessName}
                 logoUrl={logoUrl}
@@ -124,26 +209,27 @@ export function StoreHeader({
                 size="sm"
                 primaryColor={primaryColor}
                 secondaryColor={secondaryColor}
-                light
               />
 
               <div className="min-w-0">
-                <h1 className="truncate text-base font-black text-white md:text-lg">
+                <h1 className="truncate text-[17px] font-black text-[#102033]">
                   {businessName}
                 </h1>
 
-                <p className="truncate text-[11px] font-bold uppercase tracking-wide text-white/75 md:text-xs">
-                  {businessType || copy.sidebarTitle}
+                <p className="truncate text-[11px] font-bold uppercase tracking-wide text-[#64748B]">
+                  {businessType ||
+                    copy.sidebarTitle}
                 </p>
               </div>
             </Link>
           </div>
 
-          <nav className="hidden items-center gap-2 lg:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {desktopMenus.map((menu) => {
               const isActive =
                 pathname === menu.href ||
-                (menu.href !== '/' && pathname.startsWith(menu.href));
+                (menu.href !== '/' &&
+                  pathname.startsWith(menu.href));
 
               return (
                 <Link
@@ -151,9 +237,17 @@ export function StoreHeader({
                   href={menu.href}
                   className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
                     isActive
-                      ? 'bg-white text-[#102033] shadow-lg'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      ? 'text-white shadow-lg'
+                      : 'text-[#102033] hover:bg-[#F8FAFC]'
                   }`}
+                  style={
+                    isActive
+                      ? {
+                          background:
+                            `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        }
+                      : undefined
+                  }
                 >
                   {menu.label}
                 </Link>
@@ -161,36 +255,53 @@ export function StoreHeader({
             })}
           </nav>
 
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="hidden items-center gap-2 xl:flex">
+            {socials.map((social) => {
+              const Icon = social.icon;
+
+              return (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] transition hover:scale-[1.03] hover:bg-[#F8FAFC]"
+                >
+                  <Icon size={18} />
+                </a>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20 lg:inline-flex"
-              aria-label={copy.searchLabel}
+              className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033] transition hover:bg-[#F8FAFC] lg:inline-flex"
             >
               <Search size={18} />
             </button>
 
             <Link
-              href="/products"
-              className="hidden items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/20 lg:inline-flex"
-            >
-              <LayoutGrid size={17} />
-              {copy.catalogLabel}
-            </Link>
-
-            <Link
               href="/cart"
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#102033] shadow-lg transition hover:scale-[1.03]"
-              aria-label="Keranjang"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-lg transition hover:scale-[1.03]"
+              style={{
+                background:
+                  `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+              }}
             >
               <ShoppingBag size={18} />
 
               {cartCount > 0 && (
                 <div
                   className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-md"
-                  style={{ backgroundColor: accentColor }}
+                  style={{
+                    backgroundColor:
+                      accentColor,
+                  }}
                 >
-                  {cartCount > 99 ? '99+' : cartCount}
+                  {cartCount > 99
+                    ? '99+'
+                    : cartCount}
                 </div>
               )}
             </Link>
@@ -209,16 +320,20 @@ export function StoreHeader({
 
       <aside
         className={`fixed left-0 top-0 z-[80] flex h-full w-[86%] max-w-[360px] flex-col overflow-hidden bg-white shadow-2xl transition duration-300 lg:hidden ${
-          open ? 'translate-x-0' : '-translate-x-full'
+          open
+            ? 'translate-x-0'
+            : '-translate-x-full'
         }`}
       >
         <div
           className="relative overflow-hidden px-5 pb-6 pt-6 text-white"
           style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+            background:
+              `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
           }}
         >
           <div className="absolute -right-14 -top-14 h-36 w-36 rounded-full bg-white/10" />
+
           <div className="absolute -bottom-16 left-8 h-32 w-32 rounded-full bg-white/10" />
 
           <div className="relative flex items-start justify-between gap-4">
@@ -239,7 +354,8 @@ export function StoreHeader({
                 </h2>
 
                 <p className="mt-1 truncate text-xs font-bold uppercase tracking-wide text-white/75">
-                  {businessType || copy.sidebarTitle}
+                  {businessType ||
+                    copy.sidebarTitle}
                 </p>
               </div>
             </div>
@@ -248,7 +364,6 @@ export function StoreHeader({
               type="button"
               onClick={() => setOpen(false)}
               className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-md"
-              aria-label="Tutup menu"
             >
               <X size={20} />
             </button>
@@ -264,7 +379,8 @@ export function StoreHeader({
             {menus.map((menu) => {
               const isActive =
                 pathname === menu.href ||
-                (menu.href !== '/' && pathname.startsWith(menu.href));
+                (menu.href !== '/' &&
+                  pathname.startsWith(menu.href));
 
               const Icon = menu.icon;
 
@@ -280,7 +396,10 @@ export function StoreHeader({
                   }`}
                   style={
                     isActive
-                      ? { backgroundColor: primaryColor }
+                      ? {
+                          backgroundColor:
+                            primaryColor,
+                        }
                       : undefined
                   }
                 >
@@ -290,12 +409,16 @@ export function StoreHeader({
                       style={
                         isActive
                           ? {
-                              backgroundColor: 'rgba(255,255,255,0.16)',
-                              color: '#FFFFFF',
+                              backgroundColor:
+                                'rgba(255,255,255,0.16)',
+                              color:
+                                '#FFFFFF',
                             }
                           : {
-                              backgroundColor: `${primaryColor}14`,
-                              color: primaryColor,
+                              backgroundColor:
+                                `${primaryColor}14`,
+                              color:
+                                primaryColor,
                             }
                       }
                     >
@@ -305,37 +428,45 @@ export function StoreHeader({
                     {menu.label}
                   </span>
 
-                  <span className="flex items-center gap-2">
-                    {menu.href === '/cart' && cartCount > 0 && (
-                      <span
-                        className="flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-[10px] font-black text-white"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        {cartCount > 99 ? '99+' : cartCount}
-                      </span>
-                    )}
-
-                    <ChevronRight
-                      size={17}
-                      className={isActive ? 'text-white' : 'text-[#94A3B8]'}
-                    />
-                  </span>
+                  <ChevronRight
+                    size={17}
+                    className={
+                      isActive
+                        ? 'text-white'
+                        : 'text-[#94A3B8]'
+                    }
+                  />
                 </Link>
               );
             })}
           </div>
-        </div>
 
-        <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4">
-          <Link
-            href="/products"
-            onClick={() => setOpen(false)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black text-white shadow-lg"
-            style={{ backgroundColor: primaryColor }}
-          >
-            <LayoutGrid size={17} />
-            {copy.catalogLabel}
-          </Link>
+          {socials.length > 0 && (
+            <>
+              <div className="mt-7 mb-3 text-xs font-black uppercase tracking-wide text-[#64748B]">
+                Social Media
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {socials.map((social) => {
+                  const Icon =
+                    social.icon;
+
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white text-[#102033]"
+                    >
+                      <Icon size={18} />
+                    </a>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </aside>
     </>
@@ -360,14 +491,20 @@ function StoreLogo({
   secondaryColor: string;
 }) {
   const boxSize =
-    size === 'lg' ? 'h-14 w-14 rounded-[20px]' : 'h-12 w-12 rounded-[18px]';
-  const iconSize = size === 'lg' ? 24 : 22;
+    size === 'lg'
+      ? 'h-14 w-14 rounded-[20px]'
+      : 'h-12 w-12 rounded-[18px]';
+
+  const iconSize =
+    size === 'lg' ? 24 : 22;
 
   if (logoUrl) {
     return (
       <div
         className={`relative shrink-0 overflow-hidden border bg-white shadow-lg ${boxSize} ${
-          light ? 'border-white/25' : 'border-[#E2E8F0]'
+          light
+            ? 'border-white/25'
+            : 'border-[#E2E8F0]'
         }`}
       >
         <Image
@@ -384,7 +521,8 @@ function StoreLogo({
     <div
       className={`flex shrink-0 items-center justify-center text-white shadow-lg ring-1 ring-white/20 ${boxSize}`}
       style={{
-        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+        background:
+          `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
       }}
     >
       <LogoIcon size={iconSize} />
@@ -392,7 +530,43 @@ function StoreLogo({
   );
 }
 
-function getHeaderCopy(contentType: string): HeaderCopy {
+function Music2Icon({
+  size = 18,
+}: {
+  size?: number;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M19 3v12.55A4 4 0 1 1 17 12V7.2l-8 1.6v7.75A4 4 0 1 1 7 14V6l12-3z" />
+    </svg>
+  );
+}
+
+function WhatsappIcon({
+  size = 18,
+}: {
+  size?: number;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="currentColor"
+    >
+      <path d="M16.04 3C8.84 3 3 8.74 3 15.82c0 2.48.72 4.88 2.08 6.95L3 29l6.42-2.02a13.2 13.2 0 0 0 6.62 1.8H16c7.2 0 13.04-5.74 13.04-12.82C29.04 8.74 23.2 3 16.04 3zm7.58 18.34c-.32.9-1.86 1.7-2.56 1.8-.66.1-1.5.14-2.42-.16-.56-.18-1.28-.42-2.2-.8-3.86-1.6-6.38-5.34-6.58-5.6-.18-.24-1.56-2.02-1.56-3.84 0-1.8.94-2.68 1.28-3.04.34-.36.74-.46.98-.46.24 0 .5 0 .72.02.22 0 .52-.08.82.64.3.72 1 2.5 1.08 2.68.08.18.14.4.02.64-.12.24-.18.4-.36.62-.18.22-.38.5-.54.66-.18.18-.38.38-.16.74.22.36.98 1.6 2.1 2.6 1.44 1.28 2.66 1.68 3.02 1.86.36.18.56.16.76-.1.2-.24.88-1.02 1.12-1.36.24-.34.48-.28.8-.16.32.12 2 .94 2.34 1.1.34.18.56.26.64.4.08.14.08.82-.24 1.72z" />
+    </svg>
+  );
+}
+
+function getHeaderCopy(
+  contentType: string,
+): HeaderCopy {
   if (contentType === 'food') {
     return {
       itemLabel: 'Menu',
@@ -415,7 +589,10 @@ function getHeaderCopy(contentType: string): HeaderCopy {
     };
   }
 
-  if (contentType === 'service' || contentType === 'laundry') {
+  if (
+    contentType === 'service' ||
+    contentType === 'laundry'
+  ) {
     return {
       itemLabel: 'Layanan',
       catalogLabel: 'Lihat Layanan',
@@ -447,7 +624,9 @@ function getHeaderCopy(contentType: string): HeaderCopy {
   };
 }
 
-function getStoreIcon(contentType: string) {
+function getStoreIcon(
+  contentType: string,
+) {
   switch (contentType) {
     case 'food':
       return UtensilsCrossed;

@@ -27,6 +27,15 @@ import {
   resolveSubdomain,
 } from '@/lib/store-resolver';
 
+const firebaseConfig = {
+  apiKey: 'AIzaSyC1M0GEIE3OxBgZ3Jdv-Ui516uLhRdYdCM',
+  authDomain: 'talase-pos.firebaseapp.com',
+  projectId: 'talase-pos',
+  storageBucket: 'talase-pos.firebasestorage.app',
+  messagingSenderId: '1061126584585',
+  appId: '1:1061126584585:web:e2d1b4bbf5c631088dbbd8',
+};
+
 export default async function OrderTrackingPage({
   params,
 }: {
@@ -43,6 +52,13 @@ export default async function OrderTrackingPage({
     return <StoreStatusPage store={store} />;
   }
 
+  const storeMeta = store as Awaited<ReturnType<typeof getStorefrontData>> & {
+    mitraId?: string;
+    id?: string;
+  };
+
+  const mitraId = storeMeta.mitraId || storeMeta.id || '';
+
   return (
     <main
       className="min-h-screen bg-[#F7FAFC] text-[#102033]"
@@ -53,6 +69,10 @@ export default async function OrderTrackingPage({
         businessType={store.businessType}
         contentType={store.contentType}
         logoUrl={store.logoUrl}
+        facebookUrl={store.facebookUrl}
+        instagramUrl={store.instagramUrl}
+        tiktokUrl={store.tiktokUrl}
+        whatsappUrl={store.whatsapp}
         primaryColor={store.primaryColor}
         secondaryColor={store.secondaryColor}
         accentColor={store.accentColor}
@@ -72,27 +92,88 @@ export default async function OrderTrackingPage({
           <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-4xl font-black md:text-5xl">
-                Tracking Order
+                Pesanan Saya
               </h1>
 
               <p className="mt-3 text-sm font-semibold leading-7 text-[#64748B] md:text-base">
-                Pantau status pesanan Anda secara mudah tanpa login.
+                Pilih pesanan untuk melihat detail pembayaran, status, dan
+                tracking proses toko.
               </p>
             </div>
 
             <div
               className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-black"
-              style={{ backgroundColor: '#FFF1E6', color: store.accentColor }}
+              style={{
+                backgroundColor: '#FFF1E6',
+                color: store.accentColor,
+              }}
             >
               <ReceiptText size={17} />
-              {orderCode}
+              Tracking Order
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-5 py-8 md:px-8 lg:grid-cols-[1fr_390px]">
-        <div className="space-y-6">
+      <section className="mx-auto grid max-w-7xl gap-6 px-5 py-8 md:px-8 lg:grid-cols-[420px_1fr]">
+        <aside className="h-fit rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6 lg:sticky lg:top-24">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl text-white"
+              style={{ backgroundColor: store.primaryColor }}
+            >
+              <PackageSearch size={22} />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-black">List Order</h2>
+              <p className="mt-1 text-xs font-bold text-[#64748B]">
+                Pesanan dari browser ini
+              </p>
+            </div>
+          </div>
+
+          <div
+            id="order-list-message"
+            className="mt-5 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 text-center"
+          >
+            <p className="text-sm font-black text-[#102033]">
+              Memuat pesanan...
+            </p>
+            <p className="mt-2 text-xs font-semibold leading-6 text-[#64748B]">
+              Sistem sedang mengambil data order.
+            </p>
+          </div>
+
+          <div id="order-list" className="mt-5 hidden space-y-3" />
+
+          <div className="mt-6 rounded-2xl bg-[#FFF1E6] p-4">
+            <p className="text-sm font-semibold leading-7 text-[#92400E]">
+              Jika pesanan tidak muncul, buka kembali link tracking dari halaman
+              pembayaran atau hubungi admin toko.
+            </p>
+          </div>
+        </aside>
+
+        <div id="order-detail-empty" className="rounded-[32px] border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
+          <div
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl text-white"
+            style={{ backgroundColor: store.primaryColor }}
+          >
+            <PackageCheck size={30} />
+          </div>
+
+          <h2 className="mt-5 text-3xl font-black">
+            Pilih pesanan terlebih dahulu
+          </h2>
+
+          <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-7 text-[#64748B]">
+            Detail status, data pembeli, produk, dan pembayaran akan muncul
+            setelah salah satu pesanan dipilih.
+          </p>
+        </div>
+
+        <div id="order-detail" className="hidden space-y-6">
           <section className="overflow-hidden rounded-[32px] border border-[#E2E8F0] bg-white shadow-sm">
             <div
               className="p-6 text-white md:p-8"
@@ -109,14 +190,14 @@ export default async function OrderTrackingPage({
                 id="order-status-heading"
                 className="mt-5 text-3xl font-black md:text-4xl"
               >
-                Memuat status pesanan
+                -
               </h2>
 
               <p
                 id="order-status-description"
                 className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-white/85 md:text-base"
               >
-                Data tracking sedang disiapkan.
+                -
               </p>
             </div>
 
@@ -218,50 +299,40 @@ export default async function OrderTrackingPage({
               </div>
             </div>
           </section>
-        </div>
 
-        <aside className="h-fit rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6 lg:sticky lg:top-24">
-          <h2 className="text-2xl font-black">Ringkasan Pesanan</h2>
+          <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-5 shadow-sm md:p-6">
+            <h2 className="text-2xl font-black">Ringkasan Pesanan</h2>
 
-          <div id="order-items" className="mt-5 space-y-4" />
+            <div id="order-items" className="mt-5 space-y-4" />
 
-          <div className="mt-6 space-y-4">
-            <SummaryRow id="order-subtotal" label="Subtotal" value="Rp 0" />
-            <SummaryRow id="order-discount" label="Diskon" value="- Rp 0" />
-            <SummaryRow id="order-shipping" label="Ongkir" value="Diatur toko" />
+            <div className="mt-6 space-y-4">
+              <SummaryRow id="order-subtotal" label="Subtotal" value="Rp 0" />
+              <SummaryRow id="order-discount" label="Diskon" value="- Rp 0" />
+              <SummaryRow id="order-shipping" label="Ongkir" value="Diatur toko" />
 
-            <div className="border-t border-dashed border-[#CBD5E1] pt-4">
-              <SummaryRow id="order-total" label="Total" value="Rp 0" bold />
+              <div className="border-t border-dashed border-[#CBD5E1] pt-4">
+                <SummaryRow id="order-total" label="Total" value="Rp 0" bold />
+              </div>
             </div>
-          </div>
 
-          <Link
-            href={`/payment/${orderCode}`}
-            className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-xl transition hover:scale-[1.01]"
-            style={{ backgroundColor: store.primaryColor }}
-          >
-            Lihat Pembayaran
-            <ArrowRight size={18} />
-          </Link>
+            <Link
+              id="payment-link"
+              href={`/payment/${orderCode}`}
+              className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-black text-white shadow-xl transition hover:scale-[1.01]"
+              style={{ backgroundColor: store.primaryColor }}
+            >
+              Lihat Pembayaran
+              <ArrowRight size={18} />
+            </Link>
 
-          <Link
-            href="/products"
-            className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#102033] transition hover:bg-[#F8FAFC]"
-          >
-            Belanja Lagi
-          </Link>
-
-          <div className="mt-5 rounded-2xl bg-[#FFF1E6] p-4">
-            <p className="text-sm font-semibold leading-7 text-[#92400E]">
-              Simpan kode order ini untuk mengecek status pesanan kembali.
-            </p>
-          </div>
-
-          <p
-            id="order-message"
-            className="mt-4 hidden rounded-2xl px-4 py-3 text-sm font-bold"
-          />
-        </aside>
+            <Link
+              href="/products"
+              className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-6 py-4 text-sm font-black text-[#102033] transition hover:bg-[#F8FAFC]"
+            >
+              Belanja Lagi
+            </Link>
+          </section>
+        </div>
       </section>
 
       <StoreFooter
@@ -281,7 +352,10 @@ export default async function OrderTrackingPage({
 
       <OrderTrackingScript
         orderCode={orderCode}
+        mitraId={mitraId}
+        subdomain={subdomain}
         primaryColor={store.primaryColor}
+        accentColor={store.accentColor}
       />
     </main>
   );
@@ -365,6 +439,7 @@ function InfoBox({
     <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-4">
       <div className="flex items-center gap-2" style={{ color: primaryColor }}>
         {icon}
+
         <p className="text-xs font-black uppercase tracking-wide">
           {label}
         </p>
@@ -457,43 +532,102 @@ function StoreStatusPage({
 
 function OrderTrackingScript({
   orderCode,
+  mitraId,
+  subdomain,
   primaryColor,
+  accentColor,
 }: {
   orderCode: string;
+  mitraId: string;
+  subdomain: string;
   primaryColor: string;
+  accentColor: string;
 }) {
   const script = `
-(function () {
+(async function () {
+  const firebaseConfig = ${JSON.stringify(firebaseConfig)};
+  const initialOrderCode = ${JSON.stringify(orderCode)};
+  const mitraId = ${JSON.stringify(mitraId)};
+  const subdomain = ${JSON.stringify(subdomain)};
+  const primaryColor = ${JSON.stringify(primaryColor)};
+  const accentColor = ${JSON.stringify(accentColor)};
+
   const ORDER_KEY_PREFIX = 'talase_order_';
   const CHECKOUT_KEY = 'talase_checkout_draft';
-  const orderCode = ${JSON.stringify(orderCode)};
-  const primaryColor = ${JSON.stringify(primaryColor)};
+
+  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js');
+
+  const {
+    getFirestore,
+    collection,
+    query,
+    where,
+    limit,
+    getDocs,
+    documentId
+  } = await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js');
+
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const orderListEl = document.getElementById('order-list');
+  const orderListMessageEl = document.getElementById('order-list-message');
+  const detailEl = document.getElementById('order-detail');
+  const detailEmptyEl = document.getElementById('order-detail-empty');
+
+  function safeText(value, fallback = '-') {
+    const text = value === null || value === undefined ? '' : String(value);
+    return text.trim() ? text : fallback;
+  }
+
+  function toNumber(value) {
+    const n = Number(value || 0);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
 
   function formatCurrency(value) {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       maximumFractionDigits: 0
-    }).format(Number(value || 0));
+    }).format(toNumber(value));
   }
 
-  function readOrder() {
-    try {
-      const savedOrder = localStorage.getItem(ORDER_KEY_PREFIX + orderCode);
-      if (savedOrder) return JSON.parse(savedOrder);
+  function formatDate(value) {
+    if (!value) return '-';
 
-      const draft = localStorage.getItem(CHECKOUT_KEY);
-      const parsedDraft = draft ? JSON.parse(draft) : null;
-
-      if (parsedDraft && parsedDraft.orderCode === orderCode) {
-        localStorage.setItem(ORDER_KEY_PREFIX + orderCode, JSON.stringify(parsedDraft));
-        return parsedDraft;
-      }
-
-      return null;
-    } catch (_) {
-      return null;
+    if (value.toDate && typeof value.toDate === 'function') {
+      return value.toDate().toLocaleString('id-ID');
     }
+
+    if (value.seconds) {
+      return new Date(value.seconds * 1000).toLocaleString('id-ID');
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '-';
+
+    return parsed.toLocaleString('id-ID');
+  }
+
+  function getOrderMillis(order) {
+    const value = order.createdAt;
+
+    if (!value) return 0;
+    if (value.toDate && typeof value.toDate === 'function') return value.toDate().getTime();
+    if (value.seconds) return value.seconds * 1000;
+
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   function setText(id, value) {
@@ -501,20 +635,89 @@ function OrderTrackingScript({
     if (el) el.textContent = value || '-';
   }
 
-  function setMessage(id, text, type) {
-    const el = document.getElementById(id);
-    if (!el) return;
+  function getLocalOrderCodes() {
+    const codes = new Set();
 
-    el.textContent = text;
-    el.classList.remove('hidden');
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (!key.startsWith(ORDER_KEY_PREFIX)) return;
 
-    if (type === 'success') {
-      el.style.backgroundColor = '#DCFCE7';
-      el.style.color = '#166534';
-    } else {
-      el.style.backgroundColor = '#FEE2E2';
-      el.style.color = '#991B1B';
+        const code = key.replace(ORDER_KEY_PREFIX, '').trim();
+        if (code) codes.add(code);
+      });
+
+      const draft = localStorage.getItem(CHECKOUT_KEY);
+      const parsedDraft = draft ? JSON.parse(draft) : null;
+
+      if (parsedDraft && parsedDraft.orderCode) {
+        codes.add(String(parsedDraft.orderCode));
+      }
+    } catch (_) {}
+
+    if (initialOrderCode && initialOrderCode !== 'index' && initialOrderCode !== 'list') {
+      codes.add(initialOrderCode);
     }
+
+    return Array.from(codes);
+  }
+
+  async function findOrderByCode(code) {
+    const q = query(
+      collection(db, 'online_orders'),
+      where('mitraId', '==', mitraId),
+      where('orderCode', '==', code),
+      limit(1)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) return null;
+
+    const doc = snap.docs[0];
+
+    return {
+      id: doc.id,
+      ...doc.data()
+    };
+  }
+
+  async function findOrders() {
+    const q = query(
+      collection(db, 'online_orders'),
+      where('subdomain', '==', subdomain)
+    );
+
+    const snap = await getDocs(q);
+
+    const orders = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    orders.sort((a, b) => getOrderMillis(b) - getOrderMillis(a));
+
+    return orders;
+  }
+
+  async function findItems(order) {
+    const q = query(
+      collection(db, 'online_order_items'),
+      where('mitraId', '==', mitraId),
+      where('orderId', '==', order.id)
+    );
+
+    const snap = await getDocs(q);
+
+    const fromCollection = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    if (fromCollection.length > 0) return fromCollection;
+
+    if (Array.isArray(order.items)) return order.items;
+
+    return [];
   }
 
   function paymentStatusLabel(status) {
@@ -525,6 +728,8 @@ function OrderTrackingScript({
         return 'Ditolak';
       case 'cancelled':
         return 'Dibatalkan';
+      case 'pending':
+        return 'Menunggu Pembayaran';
       case 'waiting_confirmation':
       default:
         return 'Menunggu Konfirmasi';
@@ -532,8 +737,9 @@ function OrderTrackingScript({
   }
 
   function paymentMethodLabel(method) {
-    if (method === 'qris') return 'QRIS Statis';
-    if (method === 'transfer') return 'Transfer Bank';
+    if (method === 'qris') return 'QRIS';
+    if (method === 'transfer') return 'Transfer';
+    if (method === 'cash') return 'Cash';
     return 'Belum dipilih';
   }
 
@@ -603,6 +809,26 @@ function OrderTrackingScript({
     }
   }
 
+  function resetTimeline() {
+    document.querySelectorAll('.timeline-item').forEach((item) => {
+      const icon = item.querySelector('.timeline-icon');
+      const title = item.querySelector('.timeline-title');
+
+      if (icon) {
+        icon.style.backgroundColor = '#F1F5F9';
+        icon.style.color = '#94A3B8';
+        icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+      }
+
+      if (title) {
+        title.style.color = '#94A3B8';
+      }
+    });
+
+    const completedTitle = document.querySelector('#timeline-completed .timeline-title');
+    if (completedTitle) completedTitle.textContent = 'Selesai';
+  }
+
   function setTimelineActive(id, done) {
     const item = document.getElementById(id);
     if (!item) return;
@@ -618,12 +844,11 @@ function OrderTrackingScript({
         : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
     }
 
-    if (title) {
-      title.style.color = '#102033';
-    }
+    if (title) title.style.color = '#102033';
   }
 
   function renderTimeline(orderStatus, paymentStatus) {
+    resetTimeline();
     setTimelineActive('timeline-created', true);
 
     if (
@@ -635,7 +860,7 @@ function OrderTrackingScript({
       orderStatus === 'ready' ||
       orderStatus === 'completed'
     ) {
-      setTimelineActive('timeline-payment', paymentStatus === 'paid');
+      setTimelineActive('timeline-payment', paymentStatus === 'paid' || orderStatus === 'paid' || orderStatus === 'processing' || orderStatus === 'ready' || orderStatus === 'completed');
     }
 
     if (
@@ -670,44 +895,144 @@ function OrderTrackingScript({
     }
   }
 
-  function renderEmpty() {
-    const itemsEl = document.getElementById('order-items');
+  function renderOrderList(orders) {
+    if (!orderListEl || !orderListMessageEl) return;
 
-    if (itemsEl) {
-      itemsEl.innerHTML = \`
-        <div class="rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 text-center">
-          <p class="text-sm font-black text-[#102033]">Order tidak ditemukan</p>
-          <p class="mt-2 text-xs font-semibold leading-6 text-[#64748B]">
-            Data order belum tersedia di browser ini.
-          </p>
-          <a href="/products" class="mt-4 inline-flex rounded-xl px-4 py-3 text-xs font-black text-white" style="background:\${primaryColor}">
-            Lihat Produk
-          </a>
-        </div>
+    if (orders.length === 0) {
+      orderListEl.classList.add('hidden');
+      orderListMessageEl.classList.remove('hidden');
+      orderListMessageEl.innerHTML = \`
+        <p class="text-sm font-black text-[#102033]">Belum ada order ditemukan</p>
+        <p class="mt-2 text-xs font-semibold leading-6 text-[#64748B]">
+          Pesanan tidak ditemukan pada toko ini atau belum tersimpan di browser.
+        </p>
+        <a href="/products" class="mt-4 inline-flex rounded-xl px-4 py-3 text-xs font-black text-white" style="background:\${primaryColor}">
+          Lihat Produk
+        </a>
       \`;
+      return;
     }
 
-    setText('order-status-heading', 'Order tidak ditemukan');
-    setText('order-status-description', 'Data order tidak tersedia di browser ini atau kode order tidak valid.');
-    setText('order-created-at', '-');
-    setText('payment-status-label', '-');
-    setText('order-status-label', '-');
-    setMessage('order-message', 'Order tidak ditemukan di browser ini.', 'error');
+    orderListMessageEl.classList.add('hidden');
+    orderListEl.classList.remove('hidden');
+
+    orderListEl.innerHTML = orders.map((order, index) => {
+      const status = order.orderStatus || 'new';
+      const paymentStatus = order.paymentStatus || 'waiting_confirmation';
+
+      return \`
+        <button
+          type="button"
+          class="order-list-button w-full rounded-2xl border border-[#E2E8F0] bg-white p-4 text-left transition hover:bg-[#F8FAFC]"
+          data-order-index="\${index}"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-black text-[#102033]">\${escapeHtml(order.orderCode || order.id)}</p>
+              <p class="mt-1 text-xs font-bold text-[#64748B]">\${formatDate(order.createdAt)}</p>
+            </div>
+
+            <span class="rounded-full px-3 py-1 text-[10px] font-black" style="background:\${primaryColor}14;color:\${primaryColor}">
+              \${orderStatusLabel(status)}
+            </span>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between gap-3">
+            <p class="text-xs font-bold text-[#64748B]">\${paymentStatusLabel(paymentStatus)}</p>
+            <p class="text-sm font-black text-[#102033]">\${formatCurrency(order.total)}</p>
+          </div>
+        </button>
+      \`;
+    }).join('');
+
+    orderListEl.querySelectorAll('.order-list-button').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const index = Number(button.getAttribute('data-order-index') || 0);
+        await selectOrder(orders[index], button);
+      });
+    });
   }
 
-  function renderOrder(order) {
-    const items = Array.isArray(order.items) ? order.items : [];
-    const subtotal = Number(order.subtotal || items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0), 0));
-    const discount = Number(order.discount || 0);
-    const shippingCost = Number(order.shippingCost || 0);
-    const total = Number(order.total || subtotal - discount + shippingCost);
+  function markActiveButton(activeButton) {
+    document.querySelectorAll('.order-list-button').forEach((button) => {
+      button.style.borderColor = '#E2E8F0';
+      button.style.boxShadow = 'none';
+    });
+
+    if (activeButton) {
+      activeButton.style.borderColor = primaryColor;
+      activeButton.style.boxShadow = '0 14px 36px rgba(15, 23, 42, 0.10)';
+    }
+  }
+
+  async function selectOrder(order, activeButton) {
+    markActiveButton(activeButton);
+
+    if (detailEl) detailEl.classList.remove('hidden');
+    if (detailEmptyEl) detailEmptyEl.classList.add('hidden');
+
+    const items = await findItems(order);
+
+    renderOrder(order, items);
+
+    if (window.innerWidth < 1024) {
+      detailEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function normalizeItem(item) {
+    const name =
+      item.productName ||
+      item.name ||
+      item.title ||
+      'Produk';
+
+    const imageUrl =
+      item.productImageUrl ||
+      item.imageUrl ||
+      '';
+
+    const slug =
+      item.slug ||
+      item.productSlug ||
+      item.productId ||
+      '';
+
+    const qty = toNumber(item.qty || item.quantity || 1);
+    const price = toNumber(item.unitPrice || item.price || item.sellingPrice || 0);
+    const subtotal = toNumber(item.subtotal || price * qty);
+
+    return {
+      name,
+      imageUrl,
+      slug,
+      qty,
+      price,
+      subtotal,
+      note: item.note || ''
+    };
+  }
+
+  function renderOrder(order, rawItems) {
+    const items = Array.isArray(rawItems) ? rawItems.map(normalizeItem) : [];
+
+    const subtotal = toNumber(
+      order.subtotal ||
+      items.reduce((sum, item) => sum + item.subtotal, 0)
+    );
+
+    const discount = toNumber(order.discount || 0);
+    const shippingCost = toNumber(order.shippingCost || 0);
+    const total = toNumber(order.total || subtotal - discount + shippingCost);
+
     const orderStatus = order.orderStatus || 'new';
     const paymentStatus = order.paymentStatus || 'waiting_confirmation';
+    const paymentMethod = order.paymentMethod || '';
 
     setText('order-status-heading', headingByStatus(orderStatus));
     setText('order-status-description', descriptionByStatus(orderStatus));
-    setText('order-created-at', order.createdAt ? new Date(order.createdAt).toLocaleString('id-ID') : '-');
-    setText('payment-status-label', paymentStatusLabel(paymentStatus));
+    setText('order-created-at', formatDate(order.createdAt));
+    setText('payment-status-label', paymentStatusLabel(paymentStatus) + ' • ' + paymentMethodLabel(paymentMethod));
     setText('order-status-label', orderStatusLabel(orderStatus));
 
     setText('customer-name', order.customerName || '-');
@@ -718,21 +1043,38 @@ function OrderTrackingScript({
     const itemsEl = document.getElementById('order-items');
 
     if (itemsEl) {
-      itemsEl.innerHTML = items.map((item) => \`
-        <div class="grid grid-cols-[58px_1fr_auto] gap-3 rounded-2xl bg-[#F8FAFC] p-3">
-          <a href="/products/\${item.slug}" class="relative block aspect-square overflow-hidden rounded-xl bg-[#F1F5F9]">
-            <img src="\${item.imageUrl}" alt="\${item.name}" class="h-full w-full object-cover" />
-          </a>
-
-          <div>
-            <h3 class="line-clamp-2 text-sm font-black text-[#102033]">\${item.name}</h3>
-            <p class="mt-1 text-xs font-bold text-[#64748B]">\${item.qty} x \${formatCurrency(item.price)}</p>
-            \${item.note ? '<p class="mt-1 line-clamp-1 text-[11px] font-semibold text-[#94A3B8]">Catatan: ' + item.note + '</p>' : ''}
+      if (items.length === 0) {
+        itemsEl.innerHTML = \`
+          <div class="rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 text-center">
+            <p class="text-sm font-black text-[#102033]">Belum ada item pesanan</p>
+            <p class="mt-2 text-xs font-semibold text-[#64748B]">Item pesanan tidak ditemukan.</p>
           </div>
+        \`;
+      } else {
+        itemsEl.innerHTML = items.map((item) => {
+          const image = item.imageUrl
+            ? '<img src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + '" class="h-full w-full object-cover" />'
+            : '<div class="flex h-full w-full items-center justify-center bg-[#F1F5F9] text-[#94A3B8]">Produk</div>';
 
-          <p class="text-right text-sm font-black text-[#102033]">\${formatCurrency(Number(item.price || 0) * Number(item.qty || 0))}</p>
-        </div>
-      \`).join('');
+          const href = item.slug ? '/products/' + encodeURIComponent(item.slug) : '/products';
+
+          return \`
+            <div class="grid grid-cols-[58px_1fr_auto] gap-3 rounded-2xl bg-[#F8FAFC] p-3">
+              <a href="\${href}" class="relative block aspect-square overflow-hidden rounded-xl bg-[#F1F5F9]">
+                \${image}
+              </a>
+
+              <div>
+                <h3 class="line-clamp-2 text-sm font-black text-[#102033]">\${escapeHtml(item.name)}</h3>
+                <p class="mt-1 text-xs font-bold text-[#64748B]">\${item.qty} x \${formatCurrency(item.price)}</p>
+                \${item.note ? '<p class="mt-1 line-clamp-1 text-[11px] font-semibold text-[#94A3B8]">Catatan: ' + escapeHtml(item.note) + '</p>' : ''}
+              </div>
+
+              <p class="text-right text-sm font-black text-[#102033]">\${formatCurrency(item.subtotal)}</p>
+            </div>
+          \`;
+        }).join('');
+      }
     }
 
     setText('order-subtotal', formatCurrency(subtotal));
@@ -740,18 +1082,46 @@ function OrderTrackingScript({
     setText('order-shipping', shippingCost > 0 ? formatCurrency(shippingCost) : 'Diatur toko');
     setText('order-total', formatCurrency(total));
 
+    const paymentLink = document.getElementById('payment-link');
+    if (paymentLink && order.orderCode) {
+      paymentLink.setAttribute('href', '/payment/' + order.orderCode);
+    }
+
     renderTimeline(orderStatus, paymentStatus);
   }
 
-  const order = readOrder();
+  async function init() {
+    try {
 
-  if (!order) {
-    renderEmpty();
-  } else {
-    renderOrder(order);
+      const orders = await findOrders();
+
+      renderOrderList(orders);
+
+      const targetIndex = orders.findIndex((order) => order.orderCode === initialOrderCode);
+      const indexToSelect = targetIndex >= 0 ? targetIndex : orders.length === 1 ? 0 : -1;
+
+      if (indexToSelect >= 0) {
+        const button = document.querySelector('[data-order-index="' + indexToSelect + '"]');
+        await selectOrder(orders[indexToSelect], button);
+      }
+    } catch (error) {
+      console.error('ORDER TRACKING ERROR:', error);
+
+      if (orderListMessageEl) {
+        orderListMessageEl.classList.remove('hidden');
+        orderListMessageEl.innerHTML = \`
+          <p class="text-sm font-black text-[#102033]">Gagal memuat order</p>
+          <p class="mt-2 text-xs font-semibold leading-6 text-[#64748B]">
+            Terjadi kendala saat mengambil data pesanan.
+          </p>
+        \`;
+      }
+    }
   }
+
+  init();
 })();
 `;
 
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
+  return <script type="module" dangerouslySetInnerHTML={{ __html: script }} />;
 }
