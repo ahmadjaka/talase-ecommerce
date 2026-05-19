@@ -40,6 +40,25 @@ const firebaseConfig = {
   appId: '1:1061126584585:web:e2d1b4bbf5c631088dbbd8',
 };
 
+type OnlineOrder = {
+  id: string;
+  orderCode?: string;
+  orderId?: string;
+  orderStatus?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  customerNote?: string;
+  subtotal?: number;
+  discount?: number;
+  shippingCost?: number;
+  total?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export default async function OrderTrackingPage({
   params,
 }: {
@@ -66,13 +85,13 @@ export default async function OrderTrackingPage({
   const trackingSubdomain =
     ((store as any).subdomain || subdomain || '').toString();
 
-  const orders = await getOnlineOrdersBySubdomain(
+  const orders = (await getOnlineOrdersBySubdomain(
     trackingSubdomain,
-  );
+  )) as OnlineOrder[];
 
   const selectedOrder =
     orders.find(
-      (order) => order.orderCode === orderCode,
+      (order: OnlineOrder) => order.orderCode === orderCode,
     ) ??
     (orders.length === 1 ? orders[0] : null);
 
