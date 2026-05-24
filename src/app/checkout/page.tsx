@@ -144,6 +144,7 @@ export default async function CheckoutPage() {
         <CheckoutClient
           products={safeProducts}
           subdomain={store.subdomain || subdomain || ''}
+          mitraId={(store as any).mitraId || (store as any).id || ''}
           primaryColor={store.primaryColor}
           accentColor={store.accentColor}
           paymentSettings={paymentSettings}
