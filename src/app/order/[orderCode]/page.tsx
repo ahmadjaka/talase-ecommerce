@@ -41,10 +41,19 @@ type OnlineOrder = {
   customerPhone?: string;
   customerAddress?: string;
   customerNote?: string;
+
   subtotal?: number;
+
   discount?: number;
+  productDiscountTotal?: number;
+
+  voucherDiscount?: number;
+  promotionCode?: string;
+
   shippingCost?: number;
+
   total?: number;
+
   createdAt?: string;
   updatedAt?: string;
 };
@@ -104,6 +113,37 @@ export default async function OrderTrackingPage({
       ? orders[0]
       : null
     : ((await getOnlineOrderByCode(orderCode)) as OnlineOrder | null);
+
+  const productDiscount =
+    Number(
+      selectedOrder?.productDiscountTotal ??
+      selectedOrder?.discount ??
+      0,
+    );
+
+  const voucherDiscount =
+    Number(
+      selectedOrder?.voucherDiscount ??
+      0,
+    );
+
+  const shippingCost =
+    Number(
+      selectedOrder?.shippingCost ??
+      0,
+    );
+
+  const subtotal =
+    Number(
+      selectedOrder?.subtotal ??
+      0,
+    );
+
+  const total =
+    Number(
+      selectedOrder?.total ??
+      0,
+    );
 
   const selectedItems = selectedOrder
     ? ((await getOnlineOrderItems(selectedOrder.id)) as OnlineOrderItem[])

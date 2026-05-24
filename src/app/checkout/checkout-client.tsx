@@ -25,6 +25,11 @@ type Product = {
   name: string;
   imageUrl: string;
   price: number;
+  originalPrice?: number;
+  sellingPrice?: number;
+  discountPrice?: number;
+  finalPrice?: number;
+  hasDiscount?: boolean;
   stockQty: number;
   stockEnabled: boolean;
   isOutOfStock: boolean;
@@ -59,6 +64,28 @@ type PaymentSettings = {
 
 const CART_KEY = 'talase_cart';
 const CHECKOUT_KEY = 'talase_checkout_draft';
+function normalizeCartPrice(item: any) {
+  const originalPrice = Number(
+    item.originalPrice || item.sellingPrice || item.price || 0,
+  );
+
+  const discountPrice = Number(item.discountPrice || 0);
+
+  const hasDiscount =
+    discountPrice > 0 && discountPrice < originalPrice;
+
+  const finalPrice = hasDiscount
+    ? discountPrice
+    : Number(item.finalPrice || item.price || originalPrice);
+
+  return {
+    originalPrice,
+    discountPrice: hasDiscount ? discountPrice : 0,
+    finalPrice,
+    price: finalPrice,
+    hasDiscount,
+  };
+}
 
 export function CheckoutClient({
   products,
@@ -110,12 +137,17 @@ export function CheckoutClient({
 
         if (!source || source.isOutOfStock) return null;
 
+        const priceInfo = normalizeCartPrice({
+          ...item,
+          ...source,
+        });
+
         return {
           id: source.id || item.id,
           slug: source.slug || item.slug,
           name: source.name || item.name,
           imageUrl: source.imageUrl || item.imageUrl,
-          price: Number(source.price || item.price || 0),
+          ...priceInfo,
           stockQty: Number(source.stockQty || item.stockQty || 0),
           stockEnabled: source.stockEnabled === true,
           isOutOfStock: source.isOutOfStock === true,
@@ -130,13 +162,27 @@ export function CheckoutClient({
   }, [products]);
 
   const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.qty, 0),
+    () => items.reduce((sum, item) => {
+      const price = Number(item.originalPrice || item.sellingPrice || item.price || 0);
+      return sum + price * item.qty;
+    }, 0),
     [items],
   );
 
-  const discount = appliedVoucher?.discountAmount || 0;
+  const productDiscountTotal = useMemo(
+    () => items.reduce((sum, item) => {
+      const originalPrice = Number(item.originalPrice || item.sellingPrice || item.price || 0);
+      const finalPrice = Number(item.price || item.finalPrice || originalPrice);
+      return sum + Math.max(0, originalPrice - finalPrice) * item.qty;
+    }, 0),
+    [items],
+  );
+
+  const voucherDiscount = appliedVoucher?.discountAmount || 0;
+  const discount = productDiscountTotal;
   const shippingCost = 0;
-  const total = Math.max(0, subtotal - discount + shippingCost);
+  const total = Math.max(0, subtotal - discount - voucherDiscount + shippingCost);
+  const voucherBaseSubtotal = Math.max(0, subtotal - discount);
 
   function normalizePhone62(value: string) {
     let phone = value.replace(/[^0-9]/g, '');
@@ -254,7 +300,7 @@ export function CheckoutClient({
       }>('validatePromotionCode', {
         mitraId,
         code,
-        subtotal,
+        subtotal: voucherBaseSubtotal,
       });
 
       setAppliedVoucher({
@@ -329,7 +375,8 @@ export function CheckoutClient({
         orderStatus: result.orderStatus,
         subtotal,
         discount,
-        voucherDiscount: discount,
+        productDiscountTotal,
+        voucherDiscount,
         promotionCode: appliedVoucher?.code || '',
         promotionId: appliedVoucher?.promotionId || '',
         promotionTitle: appliedVoucher?.title || '',
@@ -651,9 +698,17 @@ export function CheckoutClient({
                   <h3 className="line-clamp-2 text-sm font-black text-[#102033]">
                     {item.name}
                   </h3>
-                  <p className="mt-1 text-xs font-bold text-[#64748B]">
-                    {item.qty} x {formatCurrency(item.price)}
-                  </p>
+                  <div className="mt-1">
+                    <p className="text-xs font-bold text-[#64748B]">
+                      {item.qty} x {formatCurrency(item.price)}
+                    </p>
+
+                    {item.hasDiscount && (
+                      <p className="text-[11px] font-bold text-[#94A3B8] line-through">
+                        {formatCurrency(item.originalPrice || item.sellingPrice || 0)}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <p className="text-right text-sm font-black text-[#102033]">
@@ -704,7 +759,17 @@ export function CheckoutClient({
           </div>
 
           <SummaryRow label="Subtotal" value={formatCurrency(subtotal)} />
-          <SummaryRow label="Diskon" value={`- ${formatCurrency(discount)}`} />
+
+          <SummaryRow
+            label="Diskon"
+            value={`- ${formatCurrency(discount)}`}
+          />
+
+          <SummaryRow
+            label="Voucher"
+            value={`- ${formatCurrency(voucherDiscount)}`}
+          />
+
           <SummaryRow label="Ongkir" value="Diatur toko" />
 
           <div className="border-t border-dashed border-[#CBD5E1] pt-4">

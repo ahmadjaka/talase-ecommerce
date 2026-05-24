@@ -12,6 +12,11 @@ type Product = {
   name: string;
   imageUrl: string;
   price: number;
+  originalPrice?: number;
+  sellingPrice?: number;
+  discountPrice?: number;
+  finalPrice?: number;
+  hasDiscount?: boolean;
   stockQty: number;
   stockEnabled: boolean;
   isOutOfStock: boolean;
@@ -24,6 +29,28 @@ type CartItem = Product & {
 };
 
 const CART_KEY = 'talase_cart';
+function normalizeCartPrice(item: any) {
+  const originalPrice = Number(
+    item.originalPrice || item.sellingPrice || item.price || 0,
+  );
+
+  const discountPrice = Number(item.discountPrice || 0);
+
+  const hasDiscount =
+    discountPrice > 0 && discountPrice < originalPrice;
+
+  const finalPrice = hasDiscount
+    ? discountPrice
+    : Number(item.finalPrice || item.price || originalPrice);
+
+  return {
+    originalPrice,
+    discountPrice: hasDiscount ? discountPrice : 0,
+    finalPrice,
+    price: finalPrice,
+    hasDiscount,
+  };
+}
 
 export function CartClient({
   products,
@@ -53,6 +80,7 @@ export function CartClient({
         } else {
           cart.push({
             ...product,
+            ...normalizeCartPrice(product),
             qty: 1,
             note: '',
           });
@@ -62,7 +90,12 @@ export function CartClient({
       window.history.replaceState({}, '', '/cart');
     }
 
-    cart = cart.filter((item) => item.slug && item.price > 0);
+    cart = cart
+      .map((item) => ({
+        ...item,
+        ...normalizeCartPrice(item),
+      }))
+      .filter((item) => item.slug && item.price > 0);
 
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
     window.dispatchEvent(new Event('talase-cart-updated'));
@@ -71,9 +104,23 @@ export function CartClient({
   }, [products]);
 
   const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.qty, 0),
+    () => items.reduce((sum, item) => {
+      const price = Number(item.originalPrice || item.sellingPrice || item.price || 0);
+      return sum + price * item.qty;
+    }, 0),
     [items],
   );
+
+  const productDiscountTotal = useMemo(
+    () => items.reduce((sum, item) => {
+      const originalPrice = Number(item.originalPrice || item.sellingPrice || item.price || 0);
+      const finalPrice = Number(item.price || item.finalPrice || originalPrice);
+      return sum + Math.max(0, originalPrice - finalPrice) * item.qty;
+    }, 0),
+    [items],
+  );
+
+  const total = Math.max(0, subtotal - productDiscountTotal);
 
   function save(next: CartItem[]) {
     setItems(next);
@@ -134,9 +181,17 @@ export function CartClient({
                   <h2 className="text-lg font-black text-[#102033] md:text-xl">
                     {item.name}
                   </h2>
-                  <p className="mt-2 text-xl font-black" style={{ color: primaryColor }}>
-                    {formatCurrency(item.price)}
-                  </p>
+                  <div className="mt-2">
+                    <p className="text-xl font-black" style={{ color: primaryColor }}>
+                      {formatCurrency(item.price)}
+                    </p>
+
+                    {item.hasDiscount && (
+                      <p className="text-xs font-bold text-[#94A3B8] line-through">
+                        {formatCurrency(item.originalPrice || item.sellingPrice || 0)}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">
@@ -176,10 +231,19 @@ export function CartClient({
             <p className="font-black">{formatCurrency(subtotal)}</p>
           </div>
 
+          {productDiscountTotal > 0 && (
+            <div className="flex justify-between">
+              <p className="font-bold text-[#64748B]">Diskon</p>
+              <p className="font-black text-[#16A34A]">
+                - {formatCurrency(productDiscountTotal)}
+              </p>
+            </div>
+          )}
+
           <div className="border-t border-dashed border-[#CBD5E1] pt-4 flex justify-between">
             <p className="font-black">Total</p>
             <p className="text-2xl font-black" style={{ color: primaryColor }}>
-              {formatCurrency(subtotal)}
+              {formatCurrency(total)}
             </p>
           </div>
         </div>
