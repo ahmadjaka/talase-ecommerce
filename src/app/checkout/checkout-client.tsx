@@ -36,6 +36,13 @@ type CartItem = Product & {
   note: string;
 };
 
+type AppliedVoucher = {
+  promotionId: string;
+  code: string;
+  title: string;
+  discountAmount: number;
+};
+
 type PaymentSettings = {
   transferEnabled: boolean;
   qrisEnabled: boolean;
@@ -56,12 +63,14 @@ const CHECKOUT_KEY = 'talase_checkout_draft';
 export function CheckoutClient({
   products,
   subdomain,
+  mitraId,
   primaryColor,
   accentColor,
   paymentSettings,
 }: {
   products: Product[];
   subdomain: string;
+  mitraId: string;
   primaryColor: string;
   accentColor: string;
   paymentSettings: PaymentSettings;
@@ -81,6 +90,8 @@ export function CheckoutClient({
   const [customerNote, setCustomerNote] = useState('');
   const [otp, setOtp] = useState('');
   const [otpVerified, setOtpVerified] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<AppliedVoucher | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -123,9 +134,9 @@ export function CheckoutClient({
     [items],
   );
 
-  const discount = 0;
+  const discount = appliedVoucher?.discountAmount || 0;
   const shippingCost = 0;
-  const total = subtotal - discount + shippingCost;
+  const total = Math.max(0, subtotal - discount + shippingCost);
 
   function normalizePhone62(value: string) {
     let phone = value.replace(/[^0-9]/g, '');
@@ -217,6 +228,58 @@ export function CheckoutClient({
     }
   }
 
+  async function applyVoucher() {
+    try {
+      setLoading(true);
+      setMessage('');
+
+      const code = voucherCode.trim().toUpperCase();
+
+      if (!code) {
+        throw new Error('Kode voucher wajib diisi.');
+      }
+
+      if (!mitraId) {
+        throw new Error('Data toko belum siap.');
+      }
+
+      const result = await callFunction<{
+        success: boolean;
+        promotion: {
+          promotionId: string;
+          title: string;
+          code: string;
+          discountAmount: number;
+        };
+      }>('validatePromotionCode', {
+        mitraId,
+        code,
+        subtotal,
+      });
+
+      setAppliedVoucher({
+        promotionId: result.promotion.promotionId,
+        code: result.promotion.code,
+        title: result.promotion.title,
+        discountAmount: Number(result.promotion.discountAmount || 0),
+      });
+
+      setVoucherCode(result.promotion.code);
+      setMessage('Voucher berhasil diterapkan.');
+    } catch (e) {
+      setAppliedVoucher(null);
+      setMessage(e instanceof Error ? e.message : 'Voucher tidak valid.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function removeVoucher() {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+    setMessage('');
+  }
+
   async function createOrder() {
     try {
       setLoading(true);
@@ -245,6 +308,7 @@ export function CheckoutClient({
         customerAddress,
         customerNote,
         paymentMethod,
+        promotionCode: appliedVoucher?.code || '',
         otp,
         items: items.map((item) => ({
           productId: item.id,
@@ -265,6 +329,10 @@ export function CheckoutClient({
         orderStatus: result.orderStatus,
         subtotal,
         discount,
+        voucherDiscount: discount,
+        promotionCode: appliedVoucher?.code || '',
+        promotionId: appliedVoucher?.promotionId || '',
+        promotionTitle: appliedVoucher?.title || '',
         shippingCost,
         total: result.total,
         items,
@@ -597,6 +665,44 @@ export function CheckoutClient({
         </div>
 
         <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+            <label className="text-xs font-black uppercase tracking-wide text-[#64748B]">
+              Kode Voucher
+            </label>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                value={voucherCode}
+                onChange={(event) => {
+                  setVoucherCode(event.target.value.toUpperCase());
+                  setAppliedVoucher(null);
+                }}
+                disabled={loading || appliedVoucher !== null}
+                placeholder="Contoh: HEMAT10"
+                className="min-w-0 flex-1 rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm font-bold outline-none disabled:opacity-70"
+              />
+
+              <button
+                type="button"
+                onClick={appliedVoucher ? removeVoucher : applyVoucher}
+                disabled={loading || items.length === 0}
+                className="rounded-xl px-4 py-3 text-xs font-black text-white disabled:opacity-60"
+                style={{
+                  backgroundColor: appliedVoucher ? '#EF4444' : primaryColor,
+                }}
+              >
+                {appliedVoucher ? 'Hapus' : 'Pakai'}
+              </button>
+            </div>
+
+            {appliedVoucher && (
+              <p className="mt-3 rounded-xl bg-[#DCFCE7] px-3 py-2 text-xs font-bold text-[#166534]">
+                Voucher {appliedVoucher.code} berhasil digunakan. Potongan{' '}
+                {formatCurrency(appliedVoucher.discountAmount)}
+              </p>
+            )}
+          </div>
+
           <SummaryRow label="Subtotal" value={formatCurrency(subtotal)} />
           <SummaryRow label="Diskon" value={`- ${formatCurrency(discount)}`} />
           <SummaryRow label="Ongkir" value="Diatur toko" />
