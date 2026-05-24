@@ -10,6 +10,10 @@ type ProductActionItem = {
   name: string;
   imageUrl: string;
   price: number;
+  originalPrice?: number;
+  sellingPrice?: number;
+  discountPrice?: number;
+  hasDiscount?: boolean;
   stockQty: number;
   stockEnabled: boolean;
   isOutOfStock: boolean;
@@ -60,13 +64,47 @@ export function ProductDetailActions({
 
       if (existing) {
         existing.qty = Math.min(Number(existing.qty || 1) + qty, maxQty);
+
+        const originalPrice = Number(
+          product.originalPrice || product.sellingPrice || product.price || 0,
+        );
+
+        const discountPrice = Number(product.discountPrice || 0);
+
+        const hasDiscount =
+          discountPrice > 0 && discountPrice < originalPrice;
+
+        const finalPrice = hasDiscount ? discountPrice : originalPrice;
+
+        existing.price = finalPrice;
+        existing.finalPrice = finalPrice;
+        existing.originalPrice = originalPrice;
+        existing.sellingPrice = originalPrice;
+        existing.discountPrice = hasDiscount ? discountPrice : 0;
+        existing.hasDiscount = hasDiscount;
       } else {
+        const originalPrice = Number(
+          product.originalPrice || product.sellingPrice || product.price || 0,
+        );
+
+        const discountPrice = Number(product.discountPrice || 0);
+
+        const hasDiscount =
+          discountPrice > 0 && discountPrice < originalPrice;
+
+        const finalPrice = hasDiscount ? discountPrice : originalPrice;
+
         cart.push({
           id: product.id,
           slug: product.slug,
           name: product.name,
           imageUrl: product.imageUrl,
-          price: product.price,
+          price: finalPrice,
+          finalPrice,
+          originalPrice,
+          sellingPrice: originalPrice,
+          discountPrice: hasDiscount ? discountPrice : 0,
+          hasDiscount,
           stockQty: product.stockQty,
           stockEnabled: product.stockEnabled,
           unit: product.unit,

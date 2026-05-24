@@ -114,6 +114,12 @@ export default async function ProductsPage() {
           imageUrl: product.imageUrl,
           price: product.price,
           originalPrice: product.originalPrice,
+          sellingPrice: (product as any).sellingPrice || product.originalPrice || product.price,
+          discountPrice: (product as any).discountPrice || 0,
+          hasDiscount:
+            Number((product as any).discountPrice || 0) > 0 &&
+            Number((product as any).discountPrice || 0) <
+              Number((product as any).sellingPrice || product.originalPrice || product.price || 0),
           sold: product.sold,
           rating: product.rating,
           category: product.category,

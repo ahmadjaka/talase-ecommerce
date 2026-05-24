@@ -17,6 +17,10 @@ export type ProductCardItem = {
   imageUrl: string;
   price: number;
   originalPrice?: number;
+  sellingPrice?: number;
+  discountPrice?: number;
+  finalPrice?: number;
+  hasDiscount?: boolean;
   sold?: number;
   rating?: number;
   category?: string;
@@ -48,6 +52,19 @@ export function ProductCard({
     product.isOutOfStock === true ||
     (product.stockEnabled === true && (product.stockQty ?? 0) <= 0);
 
+  const originalPrice = Number(
+    product.originalPrice || product.sellingPrice || product.price || 0,
+  );
+
+  const discountPrice = Number(product.discountPrice || 0);
+
+  const hasDiscount =
+    discountPrice > 0 && discountPrice < originalPrice;
+
+  const finalPrice = hasDiscount
+    ? discountPrice
+    : Number(product.finalPrice || product.price || originalPrice);
+
   const addToCart = () => {
     if (isOutOfStock) return;
 
@@ -66,13 +83,24 @@ export function ProductCard({
 
       if (existing) {
         existing.qty = Math.min(Number(existing.qty || 1) + 1, maxQty);
+        existing.price = finalPrice;
+        existing.finalPrice = finalPrice;
+        existing.originalPrice = originalPrice;
+        existing.sellingPrice = originalPrice;
+        existing.discountPrice = hasDiscount ? discountPrice : 0;
+        existing.hasDiscount = hasDiscount;
       } else {
         cart.push({
           id: product.id,
           slug: product.slug,
           name: product.name,
           imageUrl: product.imageUrl,
-          price: product.price,
+          price: finalPrice,
+          finalPrice,
+          originalPrice,
+          sellingPrice: originalPrice,
+          discountPrice: hasDiscount ? discountPrice : 0,
+          hasDiscount,
           stockQty: product.stockQty ?? 0,
           stockEnabled: product.stockEnabled === true,
           unit: product.unit || 'pcs',
@@ -159,12 +187,12 @@ export function ProductCard({
             className="text-[15px] font-black md:text-lg"
             style={{ color: primaryColor }}
           >
-            {formatCurrency(product.price)}
+            {formatCurrency(finalPrice)}
           </p>
 
-          {product.originalPrice && product.originalPrice > product.price && (
+          {hasDiscount && (
             <p className="pb-0.5 text-[11px] font-bold text-[#94A3B8] line-through md:text-xs">
-              {formatCurrency(product.originalPrice)}
+              {formatCurrency(originalPrice)}
             </p>
           )}
         </div>

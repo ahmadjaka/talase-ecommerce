@@ -81,7 +81,12 @@ export function ProductsClient({
     }
 
     if (filterBy === 'promo') {
-      rows = rows.filter((product) => Boolean(product.promoLabel));
+      rows = rows.filter((product: any) => {
+        const originalPrice = Number(product.originalPrice || product.sellingPrice || product.price || 0);
+        const discountPrice = Number(product.discountPrice || 0);
+
+        return Boolean(product.promoLabel) || (discountPrice > 0 && discountPrice < originalPrice);
+      });
     }
 
     if (filterBy === 'available') {
