@@ -212,13 +212,21 @@ export default async function ProductDetailPage({
                 className="text-4xl font-black"
                 style={{ color: store.primaryColor }}
               >
-                {formatCurrency(product.price)}
+                {formatCurrency(
+                  product.hasDiscount &&
+                    product.discountPrice > 0 &&
+                    product.discountPrice < product.sellingPrice
+                    ? product.discountPrice
+                    : product.sellingPrice || product.price,
+                )}
               </p>
 
-              {product.originalPrice > product.price && (
+              {product.hasDiscount &&
+                product.discountPrice > 0 &&
+                product.discountPrice < product.sellingPrice && (
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <p className="text-sm font-bold text-[#94A3B8] line-through">
-                    {formatCurrency(product.originalPrice)}
+                    {formatCurrency(product.sellingPrice)}
                   </p>
 
                   <span
@@ -229,7 +237,7 @@ export default async function ProductDetailPage({
                     }}
                   >
                     Hemat{' '}
-                    {formatCurrency(product.originalPrice - product.price)}
+                    {formatCurrency(product.sellingPrice - product.discountPrice)}
                   </span>
                 </div>
               )}
@@ -252,7 +260,11 @@ export default async function ProductDetailPage({
                 slug: product.slug,
                 name: product.name,
                 imageUrl: product.imageUrl,
-                price: product.price,
+                price: product.hasDiscount ? product.discountPrice : product.sellingPrice,
+                originalPrice: product.sellingPrice,
+                sellingPrice: product.sellingPrice,
+                discountPrice: product.discountPrice,
+                hasDiscount: product.hasDiscount,
                 stockQty: product.stockQty,
                 stockEnabled: product.stockEnabled,
                 isOutOfStock: product.isOutOfStock,
@@ -385,6 +397,14 @@ function RelatedProductCard({
 }) {
   const isOutOfStock = product.isOutOfStock;
 
+  const originalPrice = Number(product.sellingPrice || product.originalPrice || product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+  const hasDiscount =
+    product.hasDiscount === true &&
+    discountPrice > 0 &&
+    discountPrice < originalPrice;
+  const finalPrice = hasDiscount ? discountPrice : Number(product.price || originalPrice);
+
   return (
     <div className="group overflow-hidden rounded-[28px] border border-[#E2E8F0] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl">
       <Link href={`/products/${product.slug}`} className="block">
@@ -434,8 +454,14 @@ function RelatedProductCard({
         </Link>
 
         <p className="mt-3 text-lg font-black text-[#102033]">
-          {formatCurrency(product.price)}
+          {formatCurrency(finalPrice)}
         </p>
+
+        {hasDiscount && (
+          <p className="mt-1 text-xs font-bold text-[#94A3B8] line-through">
+            {formatCurrency(originalPrice)}
+          </p>
+        )}
 
         <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold text-[#64748B]">
           <span className="flex items-center gap-1">

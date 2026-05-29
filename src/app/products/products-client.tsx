@@ -64,7 +64,12 @@ export function ProductsClient({
       const keyword = query.toLowerCase().trim();
 
       rows = rows.filter((product) =>
-        [product.name, product.category, product.promoLabel]
+        [
+          product.name,
+          product.category,
+          product.promoLabel,
+          ...(product.promotions?.map((promo) => `${promo.code || ''} ${promo.title || ''}`) || []),
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -82,10 +87,19 @@ export function ProductsClient({
 
     if (filterBy === 'promo') {
       rows = rows.filter((product: any) => {
-        const originalPrice = Number(product.originalPrice || product.sellingPrice || product.price || 0);
+        const originalPrice = Number(product.sellingPrice || product.originalPrice || product.price || 0);
         const discountPrice = Number(product.discountPrice || 0);
+        const hasDiscount =
+          product.hasDiscount === true &&
+          discountPrice > 0 &&
+          discountPrice < originalPrice;
 
-        return Boolean(product.promoLabel) || (discountPrice > 0 && discountPrice < originalPrice);
+        return (
+          hasDiscount ||
+          Boolean(product.promoLabel) ||
+          Boolean(product.promotionIds?.length) ||
+          Boolean(product.promotions?.length)
+        );
       });
     }
 
@@ -101,8 +115,19 @@ export function ProductsClient({
         return (b.sold ?? 0) - (a.sold ?? 0);
       }
 
-      if (sortBy === 'price_low') return a.price - b.price;
-      if (sortBy === 'price_high') return b.price - a.price;
+      const getFinalPrice = (product: ProductCardItem) => {
+        const originalPrice = Number(product.sellingPrice || product.originalPrice || product.price || 0);
+        const discountPrice = Number(product.discountPrice || 0);
+
+        return product.hasDiscount === true &&
+          discountPrice > 0 &&
+          discountPrice < originalPrice
+          ? discountPrice
+          : Number(product.finalPrice || product.price || originalPrice);
+      };
+
+      if (sortBy === 'price_low') return getFinalPrice(a) - getFinalPrice(b);
+      if (sortBy === 'price_high') return getFinalPrice(b) - getFinalPrice(a);
       if (sortBy === 'name') return a.name.localeCompare(b.name);
 
       return 0;

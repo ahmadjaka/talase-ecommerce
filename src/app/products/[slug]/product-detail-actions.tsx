@@ -37,6 +37,19 @@ export function ProductDetailActions({
 
   const isOutOfStock = product.isOutOfStock;
 
+  const originalPrice = Number(
+    product.sellingPrice || product.originalPrice || product.price || 0,
+  );
+
+  const discountPrice = Number(product.discountPrice || 0);
+
+  const hasDiscount =
+    product.hasDiscount === true &&
+    discountPrice > 0 &&
+    discountPrice < originalPrice;
+
+  const finalPrice = hasDiscount ? discountPrice : originalPrice;
+
   const decreaseQty = () => {
     setQty((value) => Math.max(value - 1, 1));
   };
@@ -64,17 +77,6 @@ export function ProductDetailActions({
 
       if (existing) {
         existing.qty = Math.min(Number(existing.qty || 1) + qty, maxQty);
-
-        const originalPrice = Number(
-          product.originalPrice || product.sellingPrice || product.price || 0,
-        );
-
-        const discountPrice = Number(product.discountPrice || 0);
-
-        const hasDiscount =
-          discountPrice > 0 && discountPrice < originalPrice;
-
-        const finalPrice = hasDiscount ? discountPrice : originalPrice;
 
         existing.price = finalPrice;
         existing.finalPrice = finalPrice;

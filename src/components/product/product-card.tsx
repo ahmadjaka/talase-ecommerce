@@ -26,6 +26,13 @@ export type ProductCardItem = {
   category?: string;
   categorySlug?: string;
   promoLabel?: string;
+  promotionIds?: string[];
+  promotions?: Array<{
+    promotionId?: string;
+    title?: string;
+    code?: string;
+    promoType?: string;
+  }>;
   stockQty?: number;
   stockEnabled?: boolean;
   isOutOfStock?: boolean;
@@ -53,17 +60,25 @@ export function ProductCard({
     (product.stockEnabled === true && (product.stockQty ?? 0) <= 0);
 
   const originalPrice = Number(
-    product.originalPrice || product.sellingPrice || product.price || 0,
+    product.sellingPrice || product.originalPrice || product.price || 0,
   );
 
   const discountPrice = Number(product.discountPrice || 0);
 
   const hasDiscount =
-    discountPrice > 0 && discountPrice < originalPrice;
+    product.hasDiscount === true &&
+    discountPrice > 0 &&
+    discountPrice < originalPrice;
 
   const finalPrice = hasDiscount
     ? discountPrice
     : Number(product.finalPrice || product.price || originalPrice);
+
+  const promoLabel =
+    product.promoLabel ||
+    product.promotions?.find((promo) => promo.title || promo.code)?.title ||
+    product.promotions?.find((promo) => promo.title || promo.code)?.code ||
+    '';
 
   const addToCart = () => {
     if (isOutOfStock) return;
@@ -145,13 +160,13 @@ export function ProductCard({
           />
 
           <div className="absolute left-2 top-2 flex flex-wrap gap-2">
-            {product.promoLabel && (
+            {promoLabel && (
               <span
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg"
                 style={{ backgroundColor: accentColor }}
               >
                 <Tag size={10} />
-                {product.promoLabel}
+                {promoLabel}
               </span>
             )}
 
