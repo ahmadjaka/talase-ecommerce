@@ -36,6 +36,19 @@ export type StoreProduct = {
   secondaryImageUrls: string[];
   price: number;
   originalPrice: number;
+
+  sellingPrice: number;
+  discountPrice: number;
+  hasDiscount: boolean;
+
+  promotionIds: string[];
+
+  promotions: Array<{
+    promotionId?: string;
+    title?: string;
+    code?: string;
+    promoType?: string;
+  }>;
   sold: number;
   rating: number;
   category: string;
@@ -580,7 +593,12 @@ async function fetchProducts(
       const category = str(data.category) || 'Lainnya';
       const categorySlug =
         str(data.categorySlug) || slugify(category);
-      const price = numberValue(data.sellingPrice ?? data.price);
+      const sellingPrice = numberValue(data.sellingPrice ?? data.price);
+      const discountPrice = numberValue(data.discountPrice);
+      const hasDiscount =
+        discountPrice > 0 &&
+        discountPrice < sellingPrice;
+
       const stockQty = numberValue(data.stockQty ?? data.stock);
       const stockEnabled = data.stockEnabled === true;
       const imageUrl = str(
@@ -606,11 +624,18 @@ async function fetchProducts(
           DEFAULT_IMAGE,
         imageUrls,
         secondaryImageUrls,
-        price,
+
+        price: hasDiscount ? discountPrice : sellingPrice,
         originalPrice:
           numberValue(data.originalPrice) ||
           numberValue(data.compareAtPrice) ||
-          price,
+          sellingPrice,
+        sellingPrice,
+        discountPrice,
+        hasDiscount,
+        promotionIds: arrayString(data.promotionIds),
+        promotions: Array.isArray(data.promotions) ? data.promotions : [],
+
         sold: numberValue(data.sold),
         rating: numberValue(data.rating) || 5,
         category,
