@@ -512,18 +512,33 @@ export default async function OrderTrackingPage({
 
               <div className="mt-6 space-y-4">
                 <SummaryRow
-                  label="Subtotal"
-                  value={formatCurrency(selectedOrder.subtotal)}
+                  label="Subtotal Produk"
+                  value={formatCurrency(subtotal)}
                 />
-                <SummaryRow
-                  label="Diskon"
-                  value={`- ${formatCurrency(selectedOrder.discount)}`}
-                />
+
+                {productDiscount > 0 && (
+                  <SummaryRow
+                    label="Diskon Produk"
+                    value={`- ${formatCurrency(productDiscount)}`}
+                  />
+                )}
+
+                {voucherDiscount > 0 && (
+                  <SummaryRow
+                    label={
+                      selectedOrder.promotionCode
+                        ? `Voucher (${selectedOrder.promotionCode})`
+                        : 'Voucher'
+                    }
+                    value={`- ${formatCurrency(voucherDiscount)}`}
+                  />
+                )}
+
                 <SummaryRow
                   label="Ongkir"
                   value={
-                    Number(selectedOrder.shippingCost || 0) > 0
-                      ? formatCurrency(selectedOrder.shippingCost)
+                    shippingCost > 0
+                      ? formatCurrency(shippingCost)
                       : 'Diatur toko'
                   }
                 />
